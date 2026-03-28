@@ -71,7 +71,10 @@ export default function Navbar() {
                       <Link
                         to={`/${user.role}-profile`}
                         className="block px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
-                        onClick={() => setProfileDropdownOpen(false)}
+                        onClick={() => {
+                          console.log('Navigating to profile:', `/${user.role}-profile`);
+                          setProfileDropdownOpen(false);
+                        }}
                       >
                         Profile
                       </Link>

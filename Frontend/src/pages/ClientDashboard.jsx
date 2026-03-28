@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, Clock, AlertCircle, CreditCard, Bell, Mail, Smartphone, User, Phone, Calendar, Shield, Eye } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, CreditCard, Bell, Mail, Smartphone, User, Phone, Calendar, Shield, Eye, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
 export default function ClientDashboard() {
@@ -13,8 +13,18 @@ export default function ClientDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [upcomingHearings, setUpcomingHearings] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || 'all');
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Update activeFilter when URL changes
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter) {
+      setActiveFilter(filter);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -266,71 +276,78 @@ export default function ClientDashboard() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.2 }}
-                  className="bg-white rounded-2xl p-8 shadow-lg"
+                  className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all duration-200"
                 >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900 mb-2">{caseItem.caseTitle}</h2>
-                      <p className="text-slate-600">Lawyer: {caseItem.lawyerId?.name || 'N/A'}</p>
+                  {/* Header Section */}
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+                    <div className="flex-1">
+                      <h2 className="text-xl font-semibold text-slate-900 mb-2">{caseItem.caseTitle}</h2>
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <span className="text-sm">Lawyer:</span>
+                        <span className="text-sm font-medium text-slate-800">{caseItem.lawyerId?.name || 'N/A'}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-4 mt-4 md:mt-0">
-                      <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-                        caseItem.caseStatus === 'Open' ? 'bg-green-100 text-green-700' :
-                        caseItem.caseStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                        caseItem.caseStatus === 'Open' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        caseItem.caseStatus === 'In Progress' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                        'bg-slate-100 text-slate-600 border border-slate-200'
                       }`}>
                         {caseItem.caseStatus}
                       </span>
                       <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => navigate(`/view-case/${caseItem._id}`)}
-                        className="flex items-center space-x-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors"
+                        className="flex items-center gap-1.5 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
                       >
-                        <Eye className="w-4 h-4" />
-                        <span>View Details</span>
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View</span>
                       </motion.button>
                     </div>
                   </div>
 
-                  <div className="mb-8">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4">Case Progress Timeline</h3>
+                  {/* Timeline Section */}
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">Case Progress</h3>
                     <div className="relative">
-                      <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200"></div>
-                      <div className="space-y-6">
+                      <div className="absolute left-3.5 top-0 bottom-0 w-0.5 bg-slate-200"></div>
+                      <div className="space-y-4">
                         {mockTimeline.map((event, eventIndex) => (
                           <motion.div
                             key={eventIndex}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.3, delay: eventIndex * 0.1 }}
-                            className="relative flex items-start space-x-4"
+                            className="relative flex items-start gap-3"
                           >
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${
+                              className={`w-7 h-7 rounded-full flex items-center justify-center z-10 shrink-0 ${
                                 event.status === 'completed'
-                                  ? 'bg-green-500'
+                                  ? 'bg-emerald-500'
                                   : event.status === 'upcoming'
                                   ? 'bg-blue-500'
                                   : 'bg-slate-300'
                               }`}
                             >
                               {event.status === 'completed' ? (
-                                <CheckCircle className="w-5 h-5 text-white" />
+                                <CheckCircle className="w-4 h-4 text-white" />
                               ) : event.status === 'upcoming' ? (
-                                <Clock className="w-5 h-5 text-white" />
+                                <Clock className="w-4 h-4 text-white" />
                               ) : (
-                                <AlertCircle className="w-5 h-5 text-white" />
+                                <AlertCircle className="w-4 h-4 text-white" />
                               )}
                             </div>
-                            <div className="flex-1 pb-6">
+                            <div className="flex-1 pt-0.5">
                               <div
-                                className={`bg-slate-50 rounded-lg p-4 ${
-                                  event.status === 'upcoming' ? 'ring-2 ring-blue-500' : ''
+                                className={`rounded-lg p-3 border ${
+                                  event.status === 'upcoming' 
+                                    ? 'bg-blue-50 border-blue-200' 
+                                    : 'bg-slate-50 border-slate-200'
                                 }`}
                               >
-                                <p className="font-semibold text-slate-900">{event.event}</p>
-                                <p className="text-sm text-slate-600">
+                                <p className="text-sm font-medium text-slate-900">{event.event}</p>
+                                <p className="text-xs text-slate-500 mt-0.5">
                                   {new Date(event.date).toLocaleDateString()}
                                 </p>
                               </div>
@@ -341,30 +358,31 @@ export default function ClientDashboard() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 rounded-lg p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center space-x-2">
-                      <CreditCard className="w-5 h-5" />
+                  {/* Case Information Section */}
+                  <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
                       <span>Case Information</span>
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <p className="text-slate-600 mb-1">Created Date</p>
-                        <p className="text-slate-900 font-medium">
+                        <p className="text-xs text-slate-500 mb-0.5">Created Date</p>
+                        <p className="text-sm text-slate-900 font-medium">
                           {new Date(caseItem.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-slate-600 mb-1">Case Type</p>
-                        <p className="text-slate-900 font-medium">{caseItem.caseType}</p>
+                        <p className="text-xs text-slate-500 mb-0.5">Case Type</p>
+                        <p className="text-sm text-slate-900 font-medium">{caseItem.caseType}</p>
                       </div>
                       <div>
-                        <p className="text-slate-600 mb-1">Case Fees</p>
-                        <p className="text-slate-900 font-medium">₹{caseItem.fees?.toLocaleString() || 'N/A'}</p>
+                        <p className="text-xs text-slate-500 mb-0.5">Case Fees</p>
+                        <p className="text-sm text-slate-900 font-semibold">₹{caseItem.fees?.toLocaleString() || 'N/A'}</p>
                       </div>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end items-end">
                         <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => navigate('/payment', {
                             state: {
                               caseId: caseItem._id,
@@ -373,17 +391,19 @@ export default function ClientDashboard() {
                               lawyerName: caseItem.lawyerId?.name || 'Not assigned'
                             }
                           })}
-                          className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                          className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
                         >
-                          <CreditCard className="w-4 h-4" />
-                          <span>Pay Fees</span>
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Pay Now</span>
                         </motion.button>
                       </div>
                     </div>
-                    <div className="mt-4">
-                      <p className="text-slate-600 mb-1">Description</p>
-                      <p className="text-slate-900">{caseItem.caseDescription}</p>
-                    </div>
+                    {caseItem.caseDescription && (
+                      <div className="pt-3 border-t border-slate-200">
+                        <p className="text-xs text-slate-500 mb-1">Description</p>
+                        <p className="text-sm text-slate-700">{caseItem.caseDescription}</p>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               );

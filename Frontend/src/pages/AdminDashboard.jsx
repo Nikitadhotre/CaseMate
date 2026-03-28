@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users, Briefcase, UserCheck, BarChart3, Shield, LogOut, Eye, CheckCircle, XCircle, User, Mail, Phone, Calendar, Edit, FileText, AlertTriangle, TrendingUp, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +13,15 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams] = useSearchParams();
+
+  // Update activeTab when URL changes
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -27,7 +37,22 @@ export default function AdminDashboard() {
       }
     };
 
+    const fetchAllTabData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const [clientsRes, lawyersRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/admin/clients', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('http://localhost:5000/api/admin/lawyers', { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        setClients(clientsRes.data.data || []);
+        setLawyers(lawyersRes.data.data || []);
+      } catch (err) {
+        console.error('Error fetching tab data:', err);
+      }
+    };
+
     fetchDashboardData();
+    fetchAllTabData();
   }, []);
 
   const fetchClients = async () => {
