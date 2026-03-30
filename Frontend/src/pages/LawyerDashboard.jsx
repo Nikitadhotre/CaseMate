@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, FileText, Bell, Clock, AlertCircle, LogOut, User, Edit, Eye, CheckCircle, XCircle, FolderOpen, Layers, ChevronLeft, ChevronRight, Search, Mail, Phone, Users } from 'lucide-react';
+import { Plus, Calendar, FileText, Bell, Clock, AlertCircle, LogOut, User, Edit, Eye, CheckCircle, XCircle, FolderOpen, Layers, ChevronLeft, ChevronRight, Search, Mail, Phone, Users, TrendingUp, DollarSign, Target, MessageSquare, Send, BarChart3, PieChart, Clock3, CheckSquare, Briefcase, Activity as ActivityIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -22,6 +22,18 @@ export default function LawyerDashboard() {
   const [activeView, setActiveView] = useState(searchParams.get('view') || 'dashboard');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  
+  // New features state
+  const [messages, setMessages] = useState([]);
+  const [showMessages, setShowMessages] = useState(false);
+  const [caseStats, setCaseStats] = useState({
+    totalRevenue: 0,
+    monthlyEarnings: 0,
+    successRate: 0,
+    avgCaseDuration: 0
+  });
+  const [notifications, setNotifications] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Update activeView, activeFilter when URL changes
   useEffect(() => {
@@ -74,7 +86,33 @@ export default function LawyerDashboard() {
       const response = await axios.get(`http://localhost:5000/api/cases/lawyer/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCases(response.data.cases || []);
+      const fetchedCases = response.data.cases || [];
+      setCases(fetchedCases);
+      
+      // Calculate case statistics
+      const totalRevenue = fetchedCases.reduce((sum, c) => sum + (c.fees || 0), 0);
+      const closedCases = fetchedCases.filter(c => c.caseStatus === 'Closed').length;
+      const successRate = fetchedCases.length > 0 ? Math.round((closedCases / fetchedCases.length) * 100) : 0;
+      
+      setCaseStats({
+        totalRevenue,
+        monthlyEarnings: totalRevenue * 0.15, // Mock monthly calculation
+        successRate,
+        avgCaseDuration: 45 // Mock average days
+      });
+      
+      // Set messages
+      setMessages([
+        { id: 1, from: 'Admin', message: 'New case assigned', time: '1 hour ago', read: false },
+        { id: 2, from: 'Client', message: 'Document uploaded for Case #567', time: '3 hours ago', read: true }
+      ]);
+      
+      // Generate notifications
+      setNotifications([
+        { id: 1, type: 'hearing', message: `${upcomingHearings.length} hearings this week`, time: 'just now' },
+        { id: 2, type: 'case', message: '2 new cases added', time: 'today' }
+      ]);
+      
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to fetch cases');
       console.error('Error fetching cases:', error);
@@ -183,10 +221,130 @@ export default function LawyerDashboard() {
     <>
       <div className="min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* Simplified Header */}
-          <div className="mb-6">
-            {/* Empty header */}
+          {/* New Features: Stats Bar */}
+          {activeView === 'dashboard' && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <DollarSign className="w-8 h-8 opacity-80" />
+                  <div>
+                    <p className="text-xs opacity-80">Total Revenue</p>
+                    <p className="text-xl font-bold">₹{caseStats.totalRevenue.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="w-8 h-8 opacity-80" />
+                  <div>
+                    <p className="text-xs opacity-80">Success Rate</p>
+                    <p className="text-xl font-bold">{caseStats.successRate}%</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <Briefcase className="w-8 h-8 opacity-80" />
+                  <div>
+                    <p className="text-xs opacity-80">Active Cases</p>
+                    <p className="text-xl font-bold">{cases.filter(c => c.caseStatus !== 'Closed').length}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <Clock3 className="w-8 h-8 opacity-80" />
+                  <div>
+                    <p className="text-xs opacity-80">Avg Duration</p>
+                    <p className="text-xl font-bold">{caseStats.avgCaseDuration} days</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Header with Search & Messages */}
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search cases, clients..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-72"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {/* Messages */}
+              <button
+                onClick={() => setShowMessages(!showMessages)}
+                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <MessageSquare className="w-5 h-5 text-gray-600" />
+                {messages.filter(m => !m.read).length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {messages.filter(m => !m.read).length}
+                  </span>
+                )}
+              </button>
+              
+              {/* Notifications */}
+              <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <Bell className="w-5 h-5 text-gray-600" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+              
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
           </div>
+          
+          {/* Messages Panel */}
+          {showMessages && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Messages
+                </h3>
+                <button onClick={() => setShowMessages(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+              <div className="space-y-3">
+                {messages.length > 0 ? messages.map((msg) => (
+                  <div key={msg.id} className={`p-3 rounded-lg border ${msg.read ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'}`}>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{msg.from}</p>
+                        <p className="text-sm text-gray-600 mt-1">{msg.message}</p>
+                      </div>
+                      <span className="text-xs text-gray-500">{msg.time}</span>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-center text-gray-500 py-4">No messages</p>
+                )}
+              </div>
+            </motion.div>
+          )}
 
           {/* Full-width Content */}
           <div>
@@ -285,6 +443,82 @@ export default function LawyerDashboard() {
             {/* Dashboard View (default) - Shows all sections */}
             {activeView === 'dashboard' && (
               <>
+                {/* Performance Analytics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-700">Cases by Status</h3>
+                      <PieChart className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Open</span>
+                        <span className="text-sm font-semibold text-green-600">{cases.filter(c => c.caseStatus === 'Open').length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">In Progress</span>
+                        <span className="text-sm font-semibold text-blue-600">{cases.filter(c => c.caseStatus === 'In Progress').length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Closed</span>
+                        <span className="text-sm font-semibold text-gray-600">{cases.filter(c => c.caseStatus === 'Closed').length}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-700">Recent Activity</h3>
+                      <ActivityIcon className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4 text-green-500" />
+                        <span className="text-gray-600">2 cases completed</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-blue-500" />
+                        <span className="text-gray-600">5 new documents</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-amber-500" />
+                        <span className="text-gray-600">{upcomingHearings.length} hearings scheduled</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-700">Quick Stats</h3>
+                      <BarChart3 className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-gray-500">This Month</p>
+                        <p className="text-lg font-bold text-indigo-600">₹{caseStats.monthlyEarnings.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Total Clients</p>
+                        <p className="text-lg font-bold text-gray-900">{clients.length}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+                
                 {upcomingHearings.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: -20 }}

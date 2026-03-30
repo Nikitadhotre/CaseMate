@@ -80,10 +80,11 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
+                    className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors bg-slate-50 px-3 py-1.5 rounded-lg hover:bg-slate-100"
                   >
                     <UserCircle className="w-5 h-5" />
-                    <span>{user.name}</span>
+                    <span className="font-medium text-sm">{user.name || 'User'}</span>
+                    <span className="text-xs bg-slate-200 px-2 py-0.5 rounded capitalize">{user.role}</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>
                   <AnimatePresence>
@@ -92,8 +93,12 @@ export default function Navbar() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50"
+                        className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50"
                       >
+                        <div className="px-4 py-2 border-b border-slate-100">
+                          <p className="font-semibold text-slate-900">{user.name || 'User'}</p>
+                          <p className="text-xs text-slate-500 capitalize">{user.role}</p>
+                        </div>
                         <Link
                           to={`/${user.role}-profile`}
                           className="block px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
@@ -102,15 +107,15 @@ export default function Navbar() {
                             setProfileDropdownOpen(false);
                           }}
                         >
-                          Profile
+                          My Profile
                         </Link>
                         {user.role === 'client' && (
                           <Link
                             to="/client-dashboard"
-                            className="block px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
+                            className="block px-4 py-2 text-indigo-600 font-medium bg-indigo-50 hover:bg-indigo-100 transition-colors border-l-4 border-indigo-600"
                             onClick={() => setProfileDropdownOpen(false)}
                           >
-                            Dashboard
+                            📊 Client Dashboard
                           </Link>
                         )}
                         {user.role === 'lawyer' && (
@@ -189,21 +194,20 @@ export default function Navbar() {
               ))}
               {user ? (
                 <div className="pt-4 border-t border-slate-200 space-y-3">
-                  <Link
-                    to={`/${user.role}-profile`}
-                    className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <UserCircle className="w-5 h-5" />
-                    <span>{user.name}</span>
-                  </Link>
+                  <div className="flex items-center space-x-2 text-slate-900 bg-slate-100 p-3 rounded-lg">
+                    <UserCircle className="w-6 h-6" />
+                    <div>
+                      <p className="font-semibold">{user.name || 'User'}</p>
+                      <p className="text-xs text-slate-500 capitalize">{user.role}</p>
+                    </div>
+                  </div>
                   {user.role === 'client' && (
                     <Link
                       to="/client-dashboard"
-                      className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
+                      className="flex items-center justify-center space-x-2 text-indigo-600 font-medium bg-indigo-50 px-4 py-3 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Dashboard
+                      📊 Client Dashboard
                     </Link>
                   )}
                   {user.role === 'lawyer' && (

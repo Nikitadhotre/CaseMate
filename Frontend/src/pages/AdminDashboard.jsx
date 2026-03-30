@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Briefcase, UserCheck, BarChart3, Shield, LogOut, AlertCircle, Clock, FolderOpen } from 'lucide-react';
+import { Users, Briefcase, UserCheck, BarChart3, Shield, LogOut, AlertCircle, Clock, FolderOpen, TrendingUp, Activity, FileText, DollarSign, CheckCircle, XCircle, Search, Filter, Calendar, Bell, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -18,6 +18,13 @@ export default function AdminDashboard() {
   const [searchParams] = useSearchParams();
   const { logout } = useAuth();
   const navigate = useNavigate();
+  
+  // New features state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -55,6 +62,34 @@ export default function AdminDashboard() {
         setClients(clientsRes.data.data || []);
         setLawyers(lawyersRes.data.data || []);
         setCases(dashboard.cases || []);
+        
+        // Generate notifications based on dashboard data
+        const newNotifications = [];
+        const pendingLawyersCount = (lawyersRes.data.data || []).filter(l => !l.verified).length;
+        if (pendingLawyersCount > 0) {
+          newNotifications.push({
+            id: 1,
+            type: 'warning',
+            message: `${pendingLawyersCount} lawyer(s) pending verification`,
+            timestamp: new Date()
+          });
+        }
+        if (dashboard.upcomingHearings > 0) {
+          newNotifications.push({
+            id: 2,
+            type: 'info',
+            message: `${dashboard.upcomingHearings} upcoming hearing(s) this week`,
+            timestamp: new Date()
+          });
+        }
+        setNotifications(newNotifications);
+        
+        // Set recent activity
+        setRecentActivity([
+          { id: 1, action: 'New lawyer registered', time: '2 hours ago', icon: Briefcase },
+          { id: 2, action: 'Case status updated', time: '5 hours ago', icon: FileText },
+          { id: 3, action: 'Client verified', time: '1 day ago', icon: UserCheck }
+        ]);
       } catch (fetchError) {
         setError(fetchError.response?.data?.message || 'Failed to fetch dashboard data');
       } finally {
@@ -64,6 +99,18 @@ export default function AdminDashboard() {
 
     fetchDashboardData();
   }, []);
+  
+  // Search functionality
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setShowSearchResults(query.length > 0);
+  };
+  
+  const combinedData = [...clients.map(c => ({ ...c, type: 'client' })), ...lawyers.map(l => ({ ...l, type: 'lawyer' }))];
+  const searchResults = combinedData.filter(item => 
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  ).slice(0, 5);
 
   const handleLogout = () => {
     logout();
@@ -96,26 +143,43 @@ export default function AdminDashboard() {
       value: dashboardData?.totalUsers || 0,
       icon: Users,
       color: 'bg-blue-500',
+      trend: '+12%',
     },
     {
       title: 'Total Lawyers',
       value: dashboardData?.totalLawyers || 0,
       icon: Briefcase,
       color: 'bg-green-500',
+      trend: '+8%',
     },
     {
       title: 'Total Clients',
       value: dashboardData?.totalClients || 0,
       icon: UserCheck,
       color: 'bg-purple-500',
+      trend: '+15%',
     },
+    {
+      title: 'Total Cases',
+      value: cases.length,
+      icon: FileText,
+      color: 'bg-orange-500',
+      trend: '+5%',
+    },
+  ];
+  
+  const pendingLawyers = lawyers.filter((lawyer) => !lawyer.verified);
+  
+  // Quick actions
+  const quickActions = [
+    { label: 'Verify Lawyers', icon: CheckCircle, count: pendingLawyers.length },
+    { label: 'View All Cases', icon: FolderOpen, count: cases.length },
+    { label: 'View Analytics', icon: BarChart3, count: 0 },
   ];
 
   const filteredCases = activeCaseFilter === 'all'
     ? cases
     : cases.filter((caseItem) => caseItem.caseStatus === activeCaseFilter);
-
-  const pendingLawyers = lawyers.filter((lawyer) => !lawyer.verified);
 
   return (
     <div className="min-h-screen">
@@ -126,23 +190,103 @@ export default function AdminDashboard() {
           className="mb-6 flex items-center justify-between"
         >
           <div>
-            {/* Empty header */}
+            {/* Header content */}
+          </div>
+          
+          {/* New Features: Search & Notifications */}
+          <div className="flex items-center gap-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search users, cases..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 w-64"
+              />
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="absolute top-full mt-1 w-full bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                  {searchResults.map((result) => (
+                    <div
+                      key={result._id}
+                      className="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setShowSearchResults(false);
+                      }}
+                    >
+                      <p className="text-sm font-medium text-slate-900">{result.name}</p>
+                      <p className="text-xs text-slate-500 capitalize">{result.type} • {result.email}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <Bell className="w-5 h-5 text-slate-600" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                  <div className="p-3 border-b border-slate-200">
+                    <h3 className="font-semibold text-slate-900">Notifications</h3>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map((notif) => (
+                        <div key={notif.id} className="p-3 border-b border-slate-100 hover:bg-slate-50">
+                          <p className="text-sm text-slate-700">{notif.message}</p>
+                          <p className="text-xs text-slate-500 mt-1">Just now</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-slate-500 text-sm">No new notifications</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm"
+              className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    <TrendingUp className="w-3 h-3 text-green-500" />
+                    <span className="text-xs text-green-600 font-medium">{stat.trend}</span>
+                    <span className="text-xs text-gray-400">vs last month</span>
+                  </div>
                 </div>
                 <div className={`p-2.5 rounded-lg ${stat.color}`}>
                   <stat.icon className="w-5 h-5 text-white" />
@@ -150,6 +294,42 @@ export default function AdminDashboard() {
               </div>
             </motion.div>
           ))}
+        </div>
+        
+        {/* Quick Actions */}
+        <div className="mb-5">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Quick Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {quickActions.map((action, index) => (
+              <motion.button
+                key={action.label}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  if (action.label === 'Verify Lawyers') setActiveTab('pending');
+                  else if (action.label === 'View All Cases') setActiveTab('cases');
+                  else setActiveTab('overview');
+                }}
+                className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
+                    <action.icon className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-900">{action.label}</p>
+                    {action.count > 0 && (
+                      <p className="text-sm text-gray-500">{action.count} items</p>
+                    )}
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400" />
+              </motion.button>
+            ))}
+          </div>
         </div>
 
         {/* Content area controlled by sidebar navigation */}

@@ -190,7 +190,10 @@ const Sidebar = ({ isCollapsed: externalCollapsed, onToggle }) => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -20 : 0 }}
             style={{ maxWidth: isCollapsed ? 0 : 240 }}
-            onClick={() => navigate(`/${user?.role}-profile`)}
+            onClick={() => {
+              const rolePath = user?.role ? `/${user.role}-profile` : '/client-profile';
+              navigate(rolePath);
+            }}
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white shadow-md">
               {user?.role === 'lawyer' ? (
