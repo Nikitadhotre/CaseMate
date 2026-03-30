@@ -1,5 +1,28 @@
 const Client = require('../models/clientModel');
 const Lawyer = require('../models/lawyerModel');
+const Case = require('../models/caseModel');
+
+const getStatusCounts = (cases = []) => {
+  const initialCounts = {
+    Open: 0,
+    'In Progress': 0,
+    Closed: 0,
+  };
+
+  cases.forEach((caseItem) => {
+    if (initialCounts[caseItem.caseStatus] !== undefined) {
+      initialCounts[caseItem.caseStatus] += 1;
+    }
+  });
+
+  return initialCounts;
+};
+
+const getUpcomingHearingsCount = (cases = []) => {
+  const now = new Date();
+
+  return cases.filter((caseItem) => caseItem.nextHearingDate && new Date(caseItem.nextHearingDate) >= now).length;
+};
 
 // @desc    Get lawyer by ID
 // @route   GET /api/client/lawyers/:id
@@ -73,6 +96,39 @@ const getProfile = async (req, res) => {
         role: 'client',
         verified: user.verified,
         createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+};
+
+// @desc    Get client sidebar stats
+// @route   GET /api/client/stats
+// @access  Private/Client
+const getSidebarStats = async (req, res) => {
+  try {
+    const cases = await Case.find({ clientId: req.user.id }, 'caseStatus nextHearingDate');
+    const caseStatusCounts = getStatusCounts(cases);
+    const upcomingHearings = getUpcomingHearingsCount(cases);
+
+    res.status(200).json({
+      success: true,
+      message: 'Client stats retrieved successfully',
+      data: {
+        totals: {
+          cases: cases.length,
+          upcomingHearings,
+        },
+        cases: {
+          total: cases.length,
+          open: caseStatusCounts.Open,
+          inProgress: caseStatusCounts['In Progress'],
+          closed: caseStatusCounts.Closed,
+        },
       },
     });
   } catch (error) {
@@ -167,6 +223,7 @@ const getLawyers = async (req, res) => {
 
 module.exports = {
   getProfile,
+  getSidebarStats,
   updateProfile,
   getLawyers,
   getLawyerById,

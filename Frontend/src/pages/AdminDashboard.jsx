@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Briefcase, UserCheck, BarChart3, Shield, LogOut, Eye, CheckCircle, XCircle, User, Mail, Phone, Calendar, Edit, FileText, AlertTriangle, TrendingUp, Activity } from 'lucide-react';
+import { Users, Briefcase, UserCheck, BarChart3, Shield, LogOut, AlertCircle, Clock, FolderOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -10,76 +10,60 @@ export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [clients, setClients] = useState([]);
   const [lawyers, setLawyers] = useState([]);
+  const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [activeCaseFilter, setActiveCaseFilter] = useState('all');
   const [searchParams] = useSearchParams();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
-  // Update activeTab when URL changes
   useEffect(() => {
     const tab = searchParams.get('tab');
+    const filter = searchParams.get('filter');
+
     if (tab) {
       setActiveTab(tab);
+    } else if (filter) {
+      setActiveTab('cases');
+    } else {
+      setActiveTab('overview');
     }
-  }, [searchParams]);
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+
+    setActiveCaseFilter(filter || 'all');
+  }, [searchParams.toString()]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/dashboard');
-        setDashboardData(response.data.data);
-        setLoading(false);
-      } catch (error) {
-        setError(error.response?.data?.message || 'Failed to fetch dashboard data');
-        setLoading(false);
-      }
-    };
-
-    const fetchAllTabData = async () => {
-      try {
         const token = localStorage.getItem('token');
-        const [clientsRes, lawyersRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/admin/clients', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:5000/api/admin/lawyers', { headers: { Authorization: `Bearer ${token}` } })
+        const [dashboardRes, clientsRes, lawyersRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/admin/dashboard', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get('http://localhost:5000/api/admin/clients', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get('http://localhost:5000/api/admin/lawyers', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
         ]);
+
+        const dashboard = dashboardRes.data.data || {};
+        setDashboardData(dashboard);
         setClients(clientsRes.data.data || []);
         setLawyers(lawyersRes.data.data || []);
-      } catch (err) {
-        console.error('Error fetching tab data:', err);
+        setCases(dashboard.cases || []);
+      } catch (fetchError) {
+        setError(fetchError.response?.data?.message || 'Failed to fetch dashboard data');
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchDashboardData();
-    fetchAllTabData();
   }, []);
-
-  const fetchClients = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/admin/clients');
-      setClients(response.data.data);
-    } catch (error) {
-      console.error('Failed to fetch clients:', error);
-    }
-  };
-
-  const fetchLawyers = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/admin/lawyers');
-      setLawyers(response.data.data);
-    } catch (error) {
-      console.error('Failed to fetch lawyers:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'clients') {
-      fetchClients();
-    } else if (activeTab === 'lawyers') {
-      fetchLawyers();
-    }
-  }, [activeTab]);
 
   const handleLogout = () => {
     logout();
@@ -127,85 +111,48 @@ export default function AdminDashboard() {
     },
   ];
 
+  const filteredCases = activeCaseFilter === 'all'
+    ? cases
+    : cases.filter((caseItem) => caseItem.caseStatus === activeCaseFilter);
+
+  const pendingLawyers = lawyers.filter((lawyer) => !lawyer.verified);
+
   return (
-    <div className="pt-24 pb-16 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex items-center justify-between"
+          className="mb-6 flex items-center justify-between"
         >
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">Admin Dashboard</h1>
-            <p className="text-slate-600">System overview and management</p>
+            {/* Empty header */}
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </button>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-white rounded-2xl p-6 shadow-lg"
+              className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-600 text-sm font-medium">{stat.title}</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">{stat.value}</p>
+                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                 </div>
-                <div className={`p-3 rounded-full ${stat.color}`}>
-                  <stat.icon className="w-8 h-8 text-white" />
+                <div className={`p-2.5 rounded-lg ${stat.color}`}>
+                  <stat.icon className="w-5 h-5 text-white" />
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
-          <div className="flex space-x-1">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors cursor-pointer ${
-                activeTab === 'overview'
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('clients')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors cursor-pointer ${
-                activeTab === 'clients'
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              Clients
-            </button>
-            <button
-              onClick={() => setActiveTab('lawyers')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors cursor-pointer ${
-                activeTab === 'lawyers'
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              Lawyers
-            </button>
-
-          </div>
-        </div>
+        {/* Content area controlled by sidebar navigation */}
 
         {activeTab === 'overview' && (
           <motion.div
@@ -259,24 +206,36 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Total Cases</span>
+                    <span className="text-sm font-semibold text-slate-900">
+                      {dashboardData?.totalCases || cases.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Upcoming Hearings</span>
+                    <span className="text-sm font-semibold text-slate-900">
+                      {dashboardData?.upcomingHearings || 0}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Summary</h3>
                 <div className="space-y-3">
-                  <button className="w-full text-left p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                    <div className="font-medium text-slate-900">Manage Users</div>
-                    <div className="text-sm text-slate-600">View and edit user accounts</div>
-                  </button>
-                  <button className="w-full text-left p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                    <div className="font-medium text-slate-900">System Settings</div>
-                    <div className="text-sm text-slate-600">Configure application settings</div>
-                  </button>
-                  <button className="w-full text-left p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                    <div className="font-medium text-slate-900">Reports</div>
-                    <div className="text-sm text-slate-600">Generate system reports</div>
-                  </button>
+                  <div className="w-full text-left p-4 bg-slate-50 rounded-lg">
+                    <div className="font-medium text-slate-900">Open Cases</div>
+                    <div className="text-sm text-slate-600">{dashboardData?.caseStatusCounts?.Open || 0}</div>
+                  </div>
+                  <div className="w-full text-left p-4 bg-slate-50 rounded-lg">
+                    <div className="font-medium text-slate-900">In Progress</div>
+                    <div className="text-sm text-slate-600">{dashboardData?.caseStatusCounts?.['In Progress'] || 0}</div>
+                  </div>
+                  <div className="w-full text-left p-4 bg-slate-50 rounded-lg">
+                    <div className="font-medium text-slate-900">Closed Cases</div>
+                    <div className="text-sm text-slate-600">{dashboardData?.caseStatusCounts?.Closed || 0}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -366,6 +325,102 @@ export default function AdminDashboard() {
                 <div className="text-center py-8 text-slate-500">No lawyers found</div>
               )}
             </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'pending' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-8 shadow-lg"
+          >
+            <div className="flex items-center space-x-3 mb-6">
+              <Clock className="w-8 h-8 text-slate-600" />
+              <h2 className="text-2xl font-bold text-slate-900">Pending Approvals</h2>
+            </div>
+
+            {pendingLawyers.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">No pending lawyer approvals</div>
+            ) : (
+              <div className="grid gap-4">
+                {pendingLawyers.map((lawyer) => (
+                  <div key={lawyer._id} className="border border-slate-200 rounded-xl p-5 bg-slate-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{lawyer.name}</h3>
+                        <p className="text-sm text-slate-600">{lawyer.email}</p>
+                        <p className="text-sm text-slate-500">{lawyer.phone}</p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                        Pending
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === 'cases' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-8 shadow-lg"
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+              <div className="flex items-center space-x-3">
+                <FolderOpen className="w-8 h-8 text-slate-600" />
+                <h2 className="text-2xl font-bold text-slate-900">Cases</h2>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {['all', 'Open', 'In Progress', 'Closed'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setActiveCaseFilter(status)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeCaseFilter === status
+                        ? 'bg-slate-800 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredCases.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">No cases found for selected filter</div>
+            ) : (
+              <div className="grid gap-4">
+                {filteredCases.map((caseItem) => (
+                  <div key={caseItem._id} className="border border-slate-200 rounded-xl p-5 bg-slate-50">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{caseItem.caseTitle}</h3>
+                        <p className="text-sm text-slate-600">
+                          {caseItem.caseType} • Client: {caseItem.clientName || 'N/A'}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          Lawyer: {caseItem.lawyerId?.name || caseItem.lawyerName || 'N/A'}
+                        </p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold w-fit ${
+                        caseItem.caseStatus === 'Open'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : caseItem.caseStatus === 'In Progress'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {caseItem.caseStatus}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </div>

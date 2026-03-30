@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
-const { getProfile, updateProfile, getLawyers, getLawyerById } = require('../controllers/clientController');
+const { getProfile, getSidebarStats, updateProfile, getLawyers, getLawyerById } = require('../controllers/clientController');
 
 // @route   GET /api/client/profile
 router.get('/profile', protect, authorizeRoles('client'), getProfile);
+
+// @route   GET /api/client/stats
+router.get('/stats', protect, authorizeRoles('client'), getSidebarStats);
 
 // @route   PUT /api/client/profile
 router.put('/profile', protect, authorizeRoles('client'), updateProfile);

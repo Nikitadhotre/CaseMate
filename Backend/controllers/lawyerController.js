@@ -2,6 +2,28 @@ const Lawyer = require('../models/lawyerModel');
 const Case = require('../models/caseModel');
 const mongoose = require('mongoose');
 
+const getStatusCounts = (cases = []) => {
+  const initialCounts = {
+    Open: 0,
+    'In Progress': 0,
+    Closed: 0,
+  };
+
+  cases.forEach((caseItem) => {
+    if (initialCounts[caseItem.caseStatus] !== undefined) {
+      initialCounts[caseItem.caseStatus] += 1;
+    }
+  });
+
+  return initialCounts;
+};
+
+const getUpcomingHearingsCount = (cases = []) => {
+  const now = new Date();
+
+  return cases.filter((caseItem) => caseItem.nextHearingDate && new Date(caseItem.nextHearingDate) >= now).length;
+};
+
 // @desc    Get lawyer profile
 // @route   GET /api/lawyer/profile
 // @access  Private/Lawyer
@@ -51,15 +73,63 @@ const getProfile = async (req, res) => {
 // @route   GET /api/lawyer/cases
 // @access  Private/Lawyer
 const getCases = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Welcome Lawyer – Access Granted',
-    data: {
-      activeCases: 0,
-      completedCases: 0,
-      pendingCases: 0,
-    },
-  });
+  try {
+    const cases = await Case.find({ lawyerId: req.user.id }).sort({ createdAt: -1 });
+    const caseStatusCounts = getStatusCounts(cases);
+
+    res.status(200).json({
+      success: true,
+      message: 'Lawyer cases retrieved successfully',
+      data: {
+        activeCases: caseStatusCounts.Open + caseStatusCounts['In Progress'],
+        completedCases: caseStatusCounts.Closed,
+        pendingCases: caseStatusCounts.Open,
+        inProgressCases: caseStatusCounts['In Progress'],
+        totalCases: cases.length,
+        cases,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+};
+
+// @desc    Get lawyer sidebar stats
+// @route   GET /api/lawyer/stats
+// @access  Private/Lawyer
+const getSidebarStats = async (req, res) => {
+  try {
+    const cases = await Case.find({ lawyerId: req.user.id }, 'caseStatus nextHearingDate clientId');
+    const caseStatusCounts = getStatusCounts(cases);
+    const upcomingHearings = getUpcomingHearingsCount(cases);
+    const uniqueClients = new Set(cases.map((caseItem) => String(caseItem.clientId))).size;
+
+    res.status(200).json({
+      success: true,
+      message: 'Lawyer stats retrieved successfully',
+      data: {
+        totals: {
+          cases: cases.length,
+          clients: uniqueClients,
+          upcomingHearings,
+        },
+        cases: {
+          total: cases.length,
+          open: caseStatusCounts.Open,
+          inProgress: caseStatusCounts['In Progress'],
+          closed: caseStatusCounts.Closed,
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
 };
 
 // @desc    Update lawyer profile
@@ -140,7 +210,7 @@ const getClients = async (req, res) => {
     const lawyerId = req.user.id;
     
     const clients = await Case.aggregate([
-      { $match: { lawyerId: mongoose.Types.ObjectId(lawyerId) } },
+      { $match: { lawyerId: new mongoose.Types.ObjectId(lawyerId) } },
       {
         $group: {
           _id: '$clientId',
@@ -190,6 +260,7 @@ const getClients = async (req, res) => {
 module.exports = {
   getProfile,
   getCases,
+  getSidebarStats,
   updateProfile,
   getClients,
 };

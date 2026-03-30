@@ -134,6 +134,25 @@ const login = async (req, res) => {
   }
 };
 
+// @desc    Get current user
+// @route   GET /api/auth/me
+// @access  Private
+const getMe = async (req, res) => {
+  const user = req.user;
+  res.json({
+    success: true,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role || req.user.role,
+      verified: user.verified,
+      createdAt: user.createdAt,
+    },
+  });
+};
+
 // Generate JWT Token
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -144,4 +163,5 @@ const generateToken = (id, role) => {
 module.exports = {
   register,
   login,
+  getMe,
 };

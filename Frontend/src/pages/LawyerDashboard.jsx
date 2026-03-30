@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, FileText, Bell, Clock, AlertCircle, LogOut, User, Edit, Eye, CheckCircle, XCircle, FolderOpen, Layers } from 'lucide-react';
+import { Plus, Calendar, FileText, Bell, Clock, AlertCircle, LogOut, User, Edit, Eye, CheckCircle, XCircle, FolderOpen, Layers, ChevronLeft, ChevronRight, Search, Mail, Phone, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -11,32 +11,42 @@ export default function LawyerDashboard() {
   const [showHearingModal, setShowHearingModal] = useState(false);
   const [selectedCaseForHearing, setSelectedCaseForHearing] = useState(null);
   const [cases, setCases] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [clientSearch, setClientSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingClients, setLoadingClients] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || 'all');
+  const [activeView, setActiveView] = useState(searchParams.get('view') || 'dashboard');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Update activeFilter when URL changes
+  // Update activeView, activeFilter when URL changes
   useEffect(() => {
+    const view = searchParams.get('view') || 'dashboard';
+    setActiveView(view);
     const filter = searchParams.get('filter');
     if (filter) {
       setActiveFilter(filter);
     }
     // Auto-open add case form if navigating from sidebar
-    if (searchParams.get('action') === 'add-case') {
+    if (searchParams.get('action') === 'add-case' || view === 'add-case') {
       setShowAddCase(true);
     }
-  }, [searchParams]);
+  }, [searchParams.toString()]);
 
-  const filters = [
-    { id: 'all', label: 'All Cases', icon: Layers, count: cases.length },
-    { id: 'Open', label: 'Open', icon: FolderOpen, count: cases.filter(c => c.caseStatus === 'Open').length },
-    { id: 'In Progress', label: 'In Progress', icon: Clock, count: cases.filter(c => c.caseStatus === 'In Progress').length },
-    { id: 'Closed', label: 'Completed', icon: CheckCircle, count: cases.filter(c => c.caseStatus === 'Closed').length },
-  ];
+
+
+  const filteredClients = clients.filter(client => {
+    const searchLower = clientSearch.toLowerCase();
+    return (
+      client.name?.toLowerCase().includes(searchLower) ||
+      client.email?.toLowerCase().includes(searchLower) ||
+      client.phone?.toLowerCase().includes(searchLower)
+    );
+  });
 
   const filteredCases = activeFilter === 'all' 
     ? cases 
@@ -53,7 +63,10 @@ export default function LawyerDashboard() {
 
   useEffect(() => {
     fetchCases();
-  }, []);
+    if (activeView === 'clients') {
+      fetchClients();
+    }
+  }, [activeView]);
 
   const fetchCases = async () => {
     try {
@@ -67,6 +80,21 @@ export default function LawyerDashboard() {
       console.error('Error fetching cases:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchClients = async () => {
+    setLoadingClients(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/lawyer/clients', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setClients(response.data.clients || []);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+    } finally {
+      setLoadingClients(false);
     }
   };
 
@@ -153,384 +181,621 @@ export default function LawyerDashboard() {
 
   return (
     <>
-      <div className="pt-24 pb-16 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">Lawyer Dashboard</h1>
-              <p className="text-slate-600">Manage your cases and hearings professionally</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowAddCase(!showAddCase)}
-                className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold flex items-center space-x-2 shadow-xl hover:bg-blue-700 transition-all duration-300 border-2 border-blue-500"
-              >
-                <Plus className="w-6 h-6" />
-                <span className="text-lg">Add New Case</span>
-              </motion.button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-all duration-300 font-semibold shadow-lg"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Logout</span>
-              </button>
-            </div>
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {/* Simplified Header */}
+          <div className="mb-6">
+            {/* Empty header */}
           </div>
 
-          {/* Main Layout with Sidebar */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Left Sidebar */}
-            <div className="lg:w-80 lg:flex-shrink-0">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 sticky top-8 h-fit border border-slate-200">
-                <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
-                  <FileText className="w-8 h-8 text-slate-700" />
-                  Case Filters
-                </h2>
-                <div className="space-y-3">
-                  {filters.map((filter) => (
-                    <motion.button
-                      key={filter.id}
-                      whileHover={{ x: 4 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setActiveFilter(filter.id)}
-                      className={`group w-full flex items-center gap-4 p-5 rounded-2xl text-left transition-all duration-300 border-2 ${
-                        activeFilter === filter.id
-                          ? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white border-slate-700 shadow-xl shadow-slate-900/20 hover:shadow-2xl'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-400 hover:bg-slate-100 hover:shadow-lg'
-                      }`}
-                    >
-                      <filter.icon className={`w-7 h-7 flex-shrink-0 transition-all duration-300 ${
-                        activeFilter === filter.id 
-                          ? 'text-white drop-shadow-lg' 
-                          : 'text-slate-500 group-hover:text-slate-700'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <span className="font-semibold text-lg block leading-tight">{filter.label}</span>
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
-                          activeFilter === filter.id 
-                            ? 'bg-white/20 backdrop-blur-sm text-white' 
-                            : 'bg-slate-200 text-slate-800'
-                        }`}>
-                          {filter.count}
-                        </span>
-                      </div>
-                      {activeFilter === filter.id && (
-                        <div className="w-2 h-12 bg-white/30 rounded-full flex-shrink-0" />
-                      )}
-                    </motion.button>
+          {/* Full-width Content */}
+          <div>
+            {/* Calendar View */}
+            {activeView === 'calendar' && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Calendar</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <button className="p-1 hover:bg-gray-100 rounded">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-base font-semibold text-gray-700">
+                    {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <button className="p-1 hover:bg-gray-100 rounded">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="text-xs font-semibold text-gray-500 py-1">{day}</div>
                   ))}
+                  {(() => {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = today.getMonth();
+                    const firstDay = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const hearingDates = upcomingHearings.map(h => new Date(h.hearingDate).getDate());
+                    const cells = [];
+                    for (let i = 0; i < firstDay; i++) {
+                      cells.push(<div key={`empty-${i}`} className="h-9"></div>);
+                    }
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const isToday = day === today.getDate();
+                      const hasHearing = hearingDates.includes(day);
+                      cells.push(
+                        <div key={day} className={`h-9 flex items-center justify-center text-sm rounded-md ${
+                          isToday ? 'bg-indigo-600 text-white font-semibold' : 
+                          hasHearing ? 'bg-amber-100 text-amber-700 font-semibold cursor-pointer hover:bg-amber-200' : 
+                          'text-gray-700 hover:bg-gray-100'
+                        }`}>
+                          {day}
+                        </div>
+                      );
+                    }
+                    return cells;
+                  })()}
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Upcoming Hearings</h3>
+                  <div className="space-y-2">
+                    {upcomingHearings.map((hearing) => (
+                      <div key={hearing.id} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <Calendar className="w-5 h-5 text-amber-600" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{hearing.title}</p>
+                          <p className="text-xs text-gray-500">{new Date(hearing.hearingDate).toLocaleDateString()} - {hearing.clientName}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {upcomingHearings.length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">No upcoming hearings</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Right Side - Main Content */}
-            <div className="flex-1 min-w-0">
-              {/* Upcoming Hearings Notification */}
-              {upcomingHearings.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6 }}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-3xl p-8 shadow-2xl mb-8"
-                >
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <Bell className="w-6 h-6" />
+            {/* Notifications View */}
+            {activeView === 'notifications' && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Notifications</h2>
+                <div className="space-y-3">
+                  {upcomingHearings.length > 0 ? (
+                    upcomingHearings.map((hearing) => (
+                      <div key={hearing.id} className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                        <Bell className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">Hearing: {hearing.title}</p>
+                          <p className="text-xs text-gray-600 mt-1">Date: {new Date(hearing.hearingDate).toLocaleDateString()} at {new Date(hearing.hearingDate).toLocaleTimeString()}</p>
+                          <p className="text-xs text-gray-500">Client: {hearing.clientName}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">No notifications</p>
                     </div>
-                    <h3 className="text-2xl font-bold">Upcoming Hearings</h3>
-                  </div>
-                  <div className="space-y-4">
-                    {upcomingHearings.slice(0, 3).map((hearing, index) => (
-                      <motion.div
-                        key={hearing.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="bg-white/10 rounded-2xl p-6 backdrop-blur-xl border border-white/20 hover:bg-white/20 transition-all duration-300"
-                      >
-                        <div className="flex items-start gap-4">
-                          <Calendar className="w-10 h-10 text-blue-200 mt-1 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-lg text-white mb-1 truncate">{hearing.title}</h4>
-                            <p className="text-blue-100 mb-3">Client: <span className="font-semibold">{hearing.clientName}</span></p>
-                            <div className="flex gap-4 text-sm">
-                              <span className="bg-white/20 px-3 py-1 rounded-xl backdrop-blur-sm">
-                                {new Date(hearing.hearingDate).toLocaleDateString('en-US', {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                              </span>
-                              <span className="bg-white/20 px-3 py-1 rounded-xl backdrop-blur-sm">
-                                {new Date(hearing.hearingDate).toLocaleTimeString('en-US', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Dashboard View (default) - Shows all sections */}
+            {activeView === 'dashboard' && (
+              <>
+                {upcomingHearings.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl p-5 mb-5"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                        <Bell className="w-5 h-5" />
+                      </div>
+                      <h3 className="text-lg font-bold">Upcoming Hearings</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {upcomingHearings.slice(0, 3).map((hearing, index) => (
+                        <motion.div
+                          key={hearing.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 }}
+                          className="bg-white/10 rounded-xl p-4 backdrop-blur-xl border border-white/20 hover:bg-white/20 transition-all duration-300"
+                        >
+                          <div className="flex items-start gap-3">
+                            <Calendar className="w-8 h-8 text-blue-200 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-base text-white mb-1 truncate">{hearing.title}</h4>
+                              <p className="text-blue-100 text-sm mb-2">Client: <span className="font-semibold">{hearing.clientName}</span></p>
+                              <div className="flex gap-3 text-xs">
+                                <span className="bg-white/20 px-2 py-0.5 rounded-lg">
+                                  {new Date(hearing.hearingDate).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </span>
+                                <span className="bg-white/20 px-2 py-0.5 rounded-lg">
+                                  {new Date(hearing.hearingDate).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                        </motion.div>
+                      ))}
+                      {upcomingHearings.length > 3 && (
+                        <p className="text-blue-200 text-sm font-semibold text-center pt-3 border-t border-white/20">
+                          +{upcomingHearings.length - 3} more hearings
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Mini Calendar */}
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 mb-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-bold text-gray-900">Calendar</h3>
+                    <div className="flex items-center gap-2">
+                      <button className="p-1 hover:bg-gray-100 rounded">
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <span className="text-sm font-semibold text-gray-700">
+                        {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </span>
+                      <button className="p-1 hover:bg-gray-100 rounded">
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 text-center">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      <div key={day} className="text-xs font-semibold text-gray-500 py-1">{day}</div>
+                    ))}
+                    {(() => {
+                      const today = new Date();
+                      const year = today.getFullYear();
+                      const month = today.getMonth();
+                      const firstDay = new Date(year, month, 1).getDay();
+                      const daysInMonth = new Date(year, month + 1, 0).getDate();
+                      const hearingDates = upcomingHearings.map(h => new Date(h.hearingDate).getDate());
+                      const cells = [];
+                      for (let i = 0; i < firstDay; i++) {
+                        cells.push(<div key={`empty-${i}`} className="h-9"></div>);
+                      }
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const isToday = day === today.getDate();
+                        const hasHearing = hearingDates.includes(day);
+                        cells.push(
+                          <div key={day} className={`h-9 flex items-center justify-center text-sm rounded-md ${
+                            isToday ? 'bg-indigo-600 text-white font-semibold' : 
+                            hasHearing ? 'bg-amber-100 text-amber-700 font-semibold cursor-pointer hover:bg-amber-200' : 
+                            'text-gray-700 hover:bg-gray-100'
+                          }`}>
+                            {day}
+                          </div>
+                        );
+                      }
+                      return cells;
+                    })()}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded bg-amber-100"></div>
+                      <span className="text-xs text-gray-600">Hearing</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded bg-indigo-600"></div>
+                      <span className="text-xs text-gray-600">Today</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Add Case View */}
+            {activeView === 'add-case' && (
+              <AnimatePresence>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-white rounded-lg p-6 mb-6 border border-gray-200 shadow-sm"
+                >
+                  <h2 className="text-xl font-bold text-gray-900 mb-6">Add New Case</h2>
+                  <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Case Title
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.caseTitle}
+                        onChange={(e) => setFormData({ ...formData, caseTitle: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
+                        placeholder="Enter case title"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Case Type
+                      </label>
+                      <select
+                        value={formData.caseType}
+                        onChange={(e) => setFormData({ ...formData, caseType: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
+                        required
+                      >
+                        <option value="">Select Type</option>
+                        <option value="civil">Civil</option>
+                        <option value="criminal">Criminal</option>
+                        <option value="corporate">Corporate</option>
+                        <option value="family">Family</option>
+                        <option value="property">Property</option>
+                        <option value="cyber">Cyber</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Client Email or Phone
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.clientIdentifier}
+                        onChange={(e) => setFormData({ ...formData, clientIdentifier: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
+                        placeholder="Enter client's email or phone number"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Next Hearing Date
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.nextHearingDate}
+                        onChange={(e) => setFormData({ ...formData, nextHearingDate: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Case Fees (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.fees}
+                        onChange={(e) => setFormData({ ...formData, fees: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
+                        placeholder="Enter case fees"
+                        min="0"
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Case Description</label>
+                      <textarea
+                        value={formData.caseDescription}
+                        onChange={(e) => setFormData({ ...formData, caseDescription: e.target.value })}
+                        rows="4"
+                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all resize-none"
+                        placeholder="Enter detailed case description"
+                        required
+                      ></textarea>
+                    </div>
+                    <div className="md:col-span-2 flex gap-3 pt-2">
+                      <motion.button
+                        type="submit"
+                        disabled={submitting}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md font-semibold text-sm shadow-sm hover:bg-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {submitting ? 'Adding...' : 'Add Case'}
+                      </motion.button>
+                      <motion.button
+                        type="button"
+                        onClick={() => {
+                          setShowAddCase(false);
+                          window.history.back();
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex-1 bg-gray-100 border border-gray-300 text-gray-700 py-2.5 px-6 rounded-md font-semibold text-sm hover:bg-gray-200 transition-all duration-300"
+                      >
+                        Cancel
+                      </motion.button>
+                    </div>
+                  </form>
+                </motion.div>
+              </AnimatePresence>
+            )}
+
+            {/* Clients View */}
+            {activeView === 'clients' && (
+              <div className="space-y-5">
+                {/* Search Bar */}
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search clients by name, email or phone..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Clients List */}
+                {loadingClients ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                  </div>
+                ) : filteredClients.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-gray-600 mb-2">
+                      {clientSearch ? 'No clients found' : 'No clients yet'}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {clientSearch ? 'Try adjusting your search' : 'Your clients will appear here'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {filteredClients.map((client, index) => (
+                      <motion.div
+                        key={client._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.08 }}
+                        className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                            <span className="text-xl font-bold text-indigo-600">
+                              {client.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-bold text-gray-900 truncate">{client.name || 'Unknown'}</h3>
+                            <div className="mt-2 space-y-1.5">
+                              {client.email && (
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <Mail className="w-4 h-4 text-gray-400" />
+                                  <span className="truncate">{client.email}</span>
+                                </div>
+                              )}
+                              {client.phone && (
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <Phone className="w-4 h-4 text-gray-400" />
+                                  <span>{client.phone}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => navigate(`/view-case-details/${client._id}`)}
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-50 text-indigo-600 py-2 px-3 rounded-md text-sm font-medium hover:bg-indigo-100 transition-colors"
+                          >
+                            <FileText className="w-4 h-4" />
+                            View Cases
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="flex items-center justify-center gap-1.5 bg-gray-100 text-gray-600 py-2 px-3 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+                          >
+                            <Phone className="w-4 h-4" />
+                            Contact
+                          </motion.button>
                         </div>
                       </motion.div>
                     ))}
-                    {upcomingHearings.length > 3 && (
-                      <p className="text-blue-200 text-lg font-semibold text-center pt-4 border-t border-white/20">
-                        +{upcomingHearings.length - 3} more hearings
-                      </p>
-                    )}
                   </div>
-                </motion.div>
-              )}
-
-              <AnimatePresence>
-                {showAddCase && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="bg-white/80 backdrop-blur-sm rounded-3xl p-10 shadow-2xl mb-8 border border-slate-200"
-                  >
-                    <h2 className="text-3xl font-bold text-slate-900 mb-8">Add New Case</h2>
-                    <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-8">
-                      <div>
-                        <label className="block text-lg font-semibold text-slate-700 mb-4">
-                          Case Title
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.caseTitle}
-                          onChange={(e) => setFormData({ ...formData, caseTitle: e.target.value })}
-                          className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200 focus:border-slate-400 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                          placeholder="Enter case title"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-lg font-semibold text-slate-700 mb-4">
-                          Case Type
-                        </label>
-                        <select
-                          value={formData.caseType}
-                          onChange={(e) => setFormData({ ...formData, caseType: e.target.value })}
-                          className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200 focus:border-slate-400 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                          required
-                        >
-                          <option value="">Select Type</option>
-                          <option value="civil">Civil</option>
-                          <option value="criminal">Criminal</option>
-                          <option value="corporate">Corporate</option>
-                          <option value="family">Family</option>
-                          <option value="property">Property</option>
-                          <option value="cyber">Cyber</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-lg font-semibold text-slate-700 mb-4">
-                          Client Email or Phone
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.clientIdentifier}
-                          onChange={(e) => setFormData({ ...formData, clientIdentifier: e.target.value })}
-                          className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200 focus:border-slate-400 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                          placeholder="Enter client's email or phone number"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-lg font-semibold text-slate-700 mb-4">
-                          Next Hearing Date
-                        </label>
-                        <input
-                          type="date"
-                          value={formData.nextHearingDate}
-                          onChange={(e) => setFormData({ ...formData, nextHearingDate: e.target.value })}
-                          className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200 focus:border-slate-400 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-lg font-semibold text-slate-700 mb-4">
-                          Case Fees (₹)
-                        </label>
-                        <input
-                          type="number"
-                          value={formData.fees}
-                          onChange={(e) => setFormData({ ...formData, fees: e.target.value })}
-                          className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200 focus:border-slate-400 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                          placeholder="Enter case fees"
-                          min="0"
-                          required
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-lg font-semibold text-slate-700 mb-4">Case Description</label>
-                        <textarea
-                          value={formData.caseDescription}
-                          onChange={(e) => setFormData({ ...formData, caseDescription: e.target.value })}
-                          rows="5"
-                          className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200 focus:border-slate-400 text-lg shadow-lg hover:shadow-xl transition-all duration-300 resize-vertical"
-                          placeholder="Enter detailed case description"
-                          required
-                        ></textarea>
-                      </div>
-                      <div className="md:col-span-2 flex gap-4 pt-2">
-                        <motion.button
-                          type="submit"
-                          disabled={submitting}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="flex-1 bg-gradient-to-r from-slate-800 to-slate-900 text-white py-5 px-8 rounded-2xl font-bold text-lg shadow-2xl hover:shadow-3xl hover:from-slate-900 hover:to-slate-950 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {submitting ? 'Adding Case...' : 'Add Case'}
-                        </motion.button>
-                        <motion.button
-                          type="button"
-                          onClick={() => setShowAddCase(false)}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="flex-1 bg-white border-2 border-slate-300 text-slate-700 py-5 px-8 rounded-2xl font-bold text-lg hover:bg-slate-50 hover:border-slate-400 hover:shadow-xl transition-all duration-300"
-                        >
-                          Cancel
-                        </motion.button>
-                      </div>
-                    </form>
-                  </motion.div>
                 )}
-              </AnimatePresence>
+              </div>
+            )}
 
-              {/* Cases List */}
-              {filteredCases.length === 0 ? (
-                <div className="text-center py-20 bg-white/60 backdrop-blur-sm rounded-3xl border border-slate-200 shadow-xl">
-                  <FileText className="w-24 h-24 text-slate-300 mx-auto mb-8" />
-                  <h3 className="text-3xl font-bold text-slate-600 mb-4">
-                    {activeFilter === 'all' ? 'No cases yet' : `No ${activeFilter} cases`}
-                  </h3>
-                  <p className="text-xl text-slate-500 max-w-md mx-auto">
-                    {activeFilter === 'all' ? 'Click "Add New Case" to get started' : 'No cases match this filter'}
-                  </p>
+            {/* Cases View */}
+            {activeView === 'cases' && (
+              <>
+                {/* Stats Bar */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                  <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <p className="text-xs text-gray-500">Total Cases</p>
+                    <p className="text-xl font-bold text-gray-900">{cases.length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <p className="text-xs text-gray-500">Open</p>
+                    <p className="text-xl font-bold text-green-600">{cases.filter(c => c.caseStatus === 'Open').length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <p className="text-xs text-gray-500">In Progress</p>
+                    <p className="text-xl font-bold text-blue-600">{cases.filter(c => c.caseStatus === 'In Progress').length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <p className="text-xs text-gray-500">Closed</p>
+                    <p className="text-xl font-bold text-gray-600">{cases.filter(c => c.caseStatus === 'Closed').length}</p>
+                  </div>
                 </div>
-              ) : (
-                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
-                  {filteredCases.map((caseItem, index) => (
-                    <motion.div
-                      key={caseItem._id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.05 }}
-                      className="group bg-white rounded-3xl border border-slate-200 p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden hover:border-slate-300"
-                      onClick={() => navigate(`/update-case/${caseItem._id}`)}
-                    >
-                      {/* Header */}
-                      <div className="flex items-start justify-between mb-6 pb-6 border-b border-slate-100">
-                        <div className="flex-1 pr-4">
-                          <h3 className="text-xl font-bold text-slate-900 group-hover:text-slate-800 transition-all line-clamp-2 mb-2">
-                            {caseItem.caseTitle}
-                          </h3>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="px-4 py-1.5 bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 text-sm font-semibold rounded-xl">
-                              {caseItem.caseType}
-                            </span>
-                            <span className={`px-4 py-1.5 text-sm font-bold rounded-xl ${
-                              caseItem.caseStatus === 'Open' 
-                                ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-200' 
-                                : caseItem.caseStatus === 'In Progress' 
-                                ? 'bg-blue-100 text-blue-800 border-2 border-blue-200'
-                                : 'bg-slate-100 text-slate-700 border-2 border-slate-200'
-                            }`}>
-                              {caseItem.caseStatus}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 group-hover:from-slate-200 group-hover:to-slate-300 flex items-center justify-center transition-all duration-300">
-                          <FileText className="w-7 h-7 text-slate-600" />
-                        </div>
-                      </div>
 
-                      {/* Details */}
-                      <div className="space-y-4 mb-8">
-                        <div className="flex items-center gap-3 text-slate-700">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
-                            <User className="w-6 h-6 text-slate-500" />
-                          </div>
-                          <div>
-                            <span className="text-sm text-slate-500 block">Client</span>
-                            <span className="font-semibold text-lg">{caseItem.clientName || 'Unknown'}</span>
-                          </div>
-                        </div>
-                        {caseItem.nextHearingDate && (
-                          <div className="flex items-center gap-3 text-slate-700">
-                            <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center">
-                              <Calendar className="w-6 h-6 text-amber-600" />
-                            </div>
-                            <div>
-                              <span className="text-sm text-slate-500 block">Next Hearing</span>
-                              <span className="font-semibold text-lg">{new Date(caseItem.nextHearingDate).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3 text-slate-500">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
-                            <Clock className="w-6 h-6" />
-                          </div>
-                          <div>
-                            <span className="text-sm block">Created</span>
-                            <span className="text-sm">{new Date(caseItem.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {caseItem.caseDescription && (
-                        <div className="bg-slate-50 rounded-2xl p-5 mb-8 border">
-                          <p className="text-slate-700 leading-relaxed line-clamp-3">{caseItem.caseDescription}</p>
-                        </div>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-3 pt-6 border-t border-slate-100">
-                        {caseItem.caseStatus !== 'Closed' ? (
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMarkAsCompleted(caseItem._id);
-                            }}
-                            className="flex-1 flex items-center gap-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3.5 px-6 rounded-2xl font-semibold text-sm shadow-lg hover:shadow-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300"
-                          >
-                            <CheckCircle className="w-5 h-5" />
-                            Mark Completed
-                          </motion.button>
-                        ) : (
-                          <div className="flex items-center gap-2.5 text-emerald-600 text-sm font-semibold bg-emerald-50 py-3.5 px-6 rounded-2xl flex-1">
-                            <CheckCircle className="w-5 h-5" />
-                            Completed
-                          </div>
-                        )}
-                        {caseItem.nextHearingDate && (
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUpdateHearing(caseItem);
-                            }}
-                            className="flex items-center gap-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white py-3.5 px-6 rounded-2xl font-semibold text-sm shadow-lg hover:shadow-xl hover:from-amber-600 hover:to-amber-700 transition-all duration-300"
-                          >
-                            <Calendar className="w-5 h-5" />
-                            Update Hearing
-                          </motion.button>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
+                {/* Search and Filter Bar */}
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm mb-5">
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        placeholder="Search cases..."
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setActiveFilter('all')}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          activeFilter === 'all'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={() => setActiveFilter('Open')}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          activeFilter === 'Open'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Open
+                      </button>
+                      <button
+                        onClick={() => setActiveFilter('In Progress')}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          activeFilter === 'In Progress'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        In Progress
+                      </button>
+                      <button
+                        onClick={() => setActiveFilter('Closed')}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          activeFilter === 'Closed'
+                            ? 'bg-gray-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Closed
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Cases List */}
+                {filteredCases.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-gray-600 mb-2">
+                      {activeFilter === 'all' ? 'No cases yet' : `No ${activeFilter} cases`}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Use Sidebar to add cases
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {filteredCases.map((caseItem, index) => (
+                      <motion.div
+                        key={caseItem._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.08 }}
+                        className="group bg-white rounded-lg border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300 cursor-pointer"
+                        onClick={() => navigate(`/update-case/${caseItem._id}`)}
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded">
+                                {caseItem.caseType}
+                              </span>
+                              <span className={`px-2.5 py-0.5 text-xs font-semibold rounded ${
+                                caseItem.caseStatus === 'Open' 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : caseItem.caseStatus === 'In Progress' 
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {caseItem.caseStatus}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                              {caseItem.caseTitle}
+                            </h3>
+                          </div>
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 group-hover:from-indigo-200 group-hover:to-purple-200 flex items-center justify-center transition-all duration-300">
+                            <FileText className="w-5 h-5 text-indigo-600" />
+                          </div>
+                        </div>
+                        <div className="space-y-2.5 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <User className="w-4 h-4 text-gray-400" />
+                            <span>{caseItem.clientName || 'Unknown'}</span>
+                          </div>
+                          {caseItem.nextHearingDate && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Calendar className="w-4 h-4 text-amber-500" />
+                              <span>{new Date(caseItem.nextHearingDate).toLocaleDateString()}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Clock className="w-4 h-4" />
+                            <span>Created: {new Date(caseItem.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-3 border-t border-gray-100">
+                          {caseItem.caseStatus !== 'Closed' ? (
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsCompleted(caseItem._id);
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500 text-white py-2 px-3 rounded-md text-sm font-medium hover:bg-emerald-600 transition-colors"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Complete
+                            </motion.button>
+                          ) : (
+                            <div className="flex-1 flex items-center justify-center gap-1.5 text-emerald-600 py-2 px-3 rounded-md text-sm font-medium bg-emerald-50">
+                              <CheckCircle className="w-4 h-4" />
+                              Done
+                            </div>
+                          )}
+                          {caseItem.nextHearingDate && (
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateHearing(caseItem);
+                              }}
+                              className="flex items-center justify-center gap-1.5 bg-amber-500 text-white py-2 px-3 rounded-md text-sm font-medium hover:bg-amber-600 transition-colors"
+                            >
+                              <Calendar className="w-4 h-4" />
+                              Update
+                            </motion.button>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

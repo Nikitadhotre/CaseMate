@@ -1,6 +1,29 @@
 const Admin = require('../models/adminModel');
 const Lawyer = require('../models/lawyerModel');
 const Client = require('../models/clientModel');
+const Case = require('../models/caseModel');
+
+const getStatusCounts = (cases = []) => {
+  const initialCounts = {
+    Open: 0,
+    'In Progress': 0,
+    Closed: 0,
+  };
+
+  cases.forEach((caseItem) => {
+    if (initialCounts[caseItem.caseStatus] !== undefined) {
+      initialCounts[caseItem.caseStatus] += 1;
+    }
+  });
+
+  return initialCounts;
+};
+
+const getUpcomingHearingsCount = (cases = []) => {
+  const now = new Date();
+
+  return cases.filter((caseItem) => caseItem.nextHearingDate && new Date(caseItem.nextHearingDate) >= now).length;
+};
 
 // @desc    Get admin dashboard
 // @route   GET /api/admin/dashboard
@@ -10,12 +33,21 @@ const getDashboard = async (req, res) => {
     const totalLawyers = await Lawyer.countDocuments();
     const totalClients = await Client.countDocuments();
     const totalAdmins = await Admin.countDocuments();
+    const totalCases = await Case.countDocuments();
+    const pendingVerifications = await Lawyer.countDocuments({ verified: false });
+    const cases = await Case.find({}, 'caseStatus nextHearingDate');
+    const caseStatusCounts = getStatusCounts(cases);
+    const upcomingHearings = getUpcomingHearingsCount(cases);
 
     const data = {
       totalUsers: totalLawyers + totalClients + totalAdmins,
       totalLawyers,
       totalClients,
       totalAdmins,
+      totalCases,
+      pendingVerifications,
+      upcomingHearings,
+      caseStatusCounts,
     };
 
     res.status(200).json({
@@ -73,7 +105,11 @@ const getSystemOverview = async (req, res) => {
   try {
     const totalLawyers = await Lawyer.countDocuments();
     const totalClients = await Client.countDocuments();
+    const totalCases = await Case.countDocuments();
     const pendingVerifications = await Lawyer.countDocuments({ verified: false });
+    const cases = await Case.find({}, 'caseStatus nextHearingDate');
+    const caseStatusCounts = getStatusCounts(cases);
+    const upcomingHearings = getUpcomingHearingsCount(cases);
 
     res.status(200).json({
       success: true,
@@ -81,8 +117,51 @@ const getSystemOverview = async (req, res) => {
       data: {
         totalLawyers,
         totalClients,
-        activeCases: 0, // Mock data - would need case model
+        totalCases,
+        activeCases: caseStatusCounts.Open + caseStatusCounts['In Progress'],
         pendingVerifications,
+        upcomingHearings,
+        caseStatusCounts,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+};
+
+// @desc    Get admin sidebar stats
+// @route   GET /api/admin/stats
+// @access  Private/Admin
+const getSidebarStats = async (req, res) => {
+  try {
+    const totalLawyers = await Lawyer.countDocuments();
+    const totalClients = await Client.countDocuments();
+    const totalCases = await Case.countDocuments();
+    const pendingVerifications = await Lawyer.countDocuments({ verified: false });
+    const cases = await Case.find({}, 'caseStatus nextHearingDate');
+    const caseStatusCounts = getStatusCounts(cases);
+    const upcomingHearings = getUpcomingHearingsCount(cases);
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin stats retrieved successfully',
+      data: {
+        totals: {
+          lawyers: totalLawyers,
+          clients: totalClients,
+          cases: totalCases,
+          pendingApprovals: pendingVerifications,
+          upcomingHearings,
+        },
+        cases: {
+          total: totalCases,
+          open: caseStatusCounts.Open,
+          inProgress: caseStatusCounts['In Progress'],
+          closed: caseStatusCounts.Closed,
+        },
       },
     });
   } catch (error) {
@@ -191,6 +270,7 @@ module.exports = {
   getDashboard,
   getProfile,
   getSystemOverview,
+  getSidebarStats,
   getAllClients,
   getAllLawyers,
   updateProfile,

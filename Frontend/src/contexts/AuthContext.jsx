@@ -91,11 +91,39 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+const refreshUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUser(null);
+        return { success: false, message: 'No token found' };
+      }
+
+      const response = await axios.get('http://localhost:5000/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const userData = response.data;
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      return { success: true };
+    } catch (error) {
+      console.error('Auth refresh failed:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      delete axios.defaults.headers.common['Authorization'];
+      setUser(null);
+      return { success: false, message: error.response?.data?.message || 'Session expired' };
+    }
+  };
+
   const value = {
     user,
     login,
     register,
     logout,
+    refreshUser,
     loading,
   };
 

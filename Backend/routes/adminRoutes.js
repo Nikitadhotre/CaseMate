@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
-const { getDashboard, getProfile, getSystemOverview, getAllClients, getAllLawyers, updateProfile } = require('../controllers/adminController');
+const { getDashboard, getProfile, getSystemOverview, getSidebarStats, getAllClients, getAllLawyers, updateProfile } = require('../controllers/adminController');
 
 // @route   GET /api/admin/dashboard
 router.get('/dashboard', protect, authorizeRoles('admin'), getDashboard);
+
+// @route   GET /api/admin/stats
+router.get('/stats', protect, authorizeRoles('admin'), getSidebarStats);
 
 // @route   GET /api/admin/profile
 router.get('/profile', protect, authorizeRoles('admin'), getProfile);

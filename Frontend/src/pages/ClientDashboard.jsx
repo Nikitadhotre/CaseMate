@@ -15,7 +15,7 @@ export default function ClientDashboard() {
   const [upcomingHearings, setUpcomingHearings] = useState([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || 'all');
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
   // Update activeFilter when URL changes
@@ -23,28 +23,60 @@ export default function ClientDashboard() {
     const filter = searchParams.get('filter');
     if (filter) {
       setActiveFilter(filter);
+    } else {
+      setActiveFilter('all');
     }
-  }, [searchParams]);
+  }, [searchParams.toString()]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const initializeDashboard = async () => {
       try {
-        const token = localStorage.getItem('token');
+        setLoading(true);
+        
+        // Step 1: Skip server refresh initially - use local data (prevents logout)
+        if (!user || !user.id) {
+          setError('No user data available. Please login.');
+          return;
+        }
+        console.log('Using local user data:', user.role, user.id);
 
-        // Fetch profile first
-        const profileResponse = await axios.get('http://localhost:5000/api/client/profile', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setProfile(profileResponse.data.user);
+        // Check backend availability first (optional refresh)
+        let authRefresh = { success: true }; // Default to success for local use
+        try {
+          authRefresh = await refreshUser();
+          console.log('Server auth refreshed:', authRefresh.success);
+        } catch (refreshError) {
+          console.warn('Server auth check failed (normal if backend down):', refreshError.message);
+          authRefresh = { success: false, message: 'Backend unavailable - using local data' };
+          // Continue with local data - don't logout
+        }
+        if (!authRefresh.success && authRefresh.message !== 'Backend unavailable - using local data') {
+          console.error('Auth refresh failed:', authRefresh.message);
+          setError(`Authentication failed: ${authRefresh.message}. Please login again.`);
+          return;
+        }
 
-        // Fetch cases using the client ID from the profile (Client model id)
-        const casesResponse = await axios.get(`http://localhost:5000/api/cases/client/${profileResponse.data.user.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setCases(casesResponse.data.cases || []);
+        // Step 2: Verify it's a client user
+        if (user?.role !== 'client') {
+          console.error('User role mismatch. Expected client, got:', user?.role);
+          setError('Access denied. This dashboard is for clients only.');
+          return;
+        }
 
-        // Extract upcoming hearings from cases
-        const upcoming = (casesResponse.data.cases || [])
+        // Step 3: Fetch client profile (detailed data)
+        const profileResponse = await axios.get('http://localhost:5000/api/client/profile');
+        const clientProfile = profileResponse.data.user;
+        setProfile(clientProfile);
+        console.log('Client profile loaded:', clientProfile);
+
+        // Step 4: Fetch cases using client ID from profile
+        const casesResponse = await axios.get(`http://localhost:5000/api/cases/client/${clientProfile.id}`);
+        const clientCases = casesResponse.data.cases || [];
+        setCases(clientCases);
+        console.log(`Loaded ${clientCases.length} cases`);
+
+        // Step 5: Process upcoming hearings
+        const upcoming = clientCases
           .filter(caseItem => caseItem.nextHearingDate && new Date(caseItem.nextHearingDate) > new Date())
           .map(caseItem => ({
             id: caseItem._id,
@@ -53,25 +85,40 @@ export default function ClientDashboard() {
             lawyerName: caseItem.lawyerId?.name || 'Not assigned'
           }))
           .sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate));
-
         setUpcomingHearings(upcoming);
+        console.log(`Found ${upcoming.length} upcoming hearings`);
+
       } catch (error) {
-        console.error('Error fetching data:', error);
-        setError(error.response?.data?.message || 'Failed to fetch profile');
-        setCasesError(error.response?.data?.message || 'Failed to fetch cases');
+        console.error('Dashboard initialization failed:', {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: error.config?.url
+        });
+        
+        if (error.code === 'ERR_NETWORK') {
+          setError('Backend server not reachable. Please ensure Backend server is running on localhost:5000');
+        } else if (error.response?.status === 401) {
+          setError('Session expired. Please login again.');
+        } else if (error.response?.status === 403) {
+          setError('Access denied. Please login with a client account.');
+        } else if (error.response?.status === 404) {
+          setError('API endpoint not found. Check Backend server routes.');
+        } else {
+          setError(error.response?.data?.message || `Failed to load dashboard: ${error.message}`);
+        }
+        setCasesError(error.response?.data?.message || 'Failed to load cases');
       } finally {
         setLoading(false);
         setCasesLoading(false);
       }
     };
 
-    if (user && user.id) {
-      fetchData();
-    } else {
-      setLoading(false);
-      setCasesLoading(false);
+    if (user) {
+      initializeDashboard();
     }
-  }, [user]);
+  }, [user, refreshUser]);
 
 
 
@@ -94,9 +141,13 @@ export default function ClientDashboard() {
       </div>
     );
   }
+  const filteredCases = activeFilter === 'all'
+    ? cases
+    : cases.filter(caseItem => caseItem.caseStatus === activeFilter);
+
   return (
-    <div className="pt-24 pb-16 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -107,8 +158,8 @@ export default function ClientDashboard() {
             transition={{ duration: 0.6 }}
             className="lg:col-span-1"
           >
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden sticky top-24">
-              <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-8">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden sticky top-24 border border-gray-200">
+              <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 py-6">
                 <div className="flex items-center space-x-4">
                   <div className="bg-white rounded-full p-4">
                     <User className="w-12 h-12 text-slate-700" />
@@ -253,7 +304,7 @@ export default function ClientDashboard() {
             <h3 className="text-xl font-bold text-slate-900 mb-2">Error Loading Cases</h3>
             <p className="text-slate-600">{casesError}</p>
           </div>
-        ) : cases.length === 0 ? (
+        ) : filteredCases.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
               <AlertCircle className="w-8 h-8 text-slate-400" />
@@ -262,7 +313,7 @@ export default function ClientDashboard() {
             <p className="text-slate-600">You don't have any cases yet.</p>
           </div>
         ) : (
-            cases.map((caseItem, index) => {
+            filteredCases.map((caseItem, index) => {
               // Create mock timeline data for real cases
               const mockTimeline = [
                 { date: caseItem.createdAt, event: 'Case Filed', status: 'completed' },
@@ -299,7 +350,7 @@ export default function ClientDashboard() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => navigate(`/view-case/${caseItem._id}`)}
-                        className="flex items-center gap-1.5 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
+                        className="flex items-center gap-1.5 bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>View</span>
