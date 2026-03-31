@@ -12,16 +12,23 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const userData = localStorage.getItem('user');
+    try {
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error('Failed to parse user from localStorage:', error);
+      localStorage.removeItem('user');
+      return null;
+    }
+  });
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on app start
     const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
 
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+    if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
 
@@ -38,16 +45,19 @@ export const AuthProvider = ({ children }) => {
 
       const { token, user: userData } = response.data;
 
-      // Store token and user data
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
 
-      // Set default authorization header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
       setUser(userData);
-      return { success: true };
+
+      return {
+        success: true,
+        user: userData,
+      };
     } catch (error) {
+      console.error('Login failed:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Login failed',
@@ -67,16 +77,19 @@ export const AuthProvider = ({ children }) => {
 
       const { token, user: userData } = response.data;
 
-      // Store token and user data
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
 
-      // Set default authorization header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
       setUser(userData);
-      return { success: true };
+
+      return {
+        success: true,
+        user: userData,
+      };
     } catch (error) {
+      console.error('Registration failed:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Registration failed',
@@ -91,35 +104,49 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-const refreshUser = async () => {
+  const refreshUser = async () => {
     try {
       const token = localStorage.getItem('token');
+
       if (!token) {
         setUser(null);
         return { success: false, message: 'No token found' };
       }
 
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
       const response = await axios.get('http://localhost:5000/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      const userData = response.data;
+      const userData = response.data?.user || response.data;
+
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      return { success: true };
+
+      return {
+        success: true,
+        user: userData,
+      };
     } catch (error) {
       console.error('Auth refresh failed:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       delete axios.defaults.headers.common['Authorization'];
       setUser(null);
-      return { success: false, message: error.response?.data?.message || 'Session expired' };
+
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Session expired',
+      };
     }
   };
 
   const value = {
     user,
+    setUser,
     login,
     register,
     logout,

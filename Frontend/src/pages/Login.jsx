@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
-import { User, Briefcase, Shield, Mail, Lock, ArrowRight, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  User,
+  Briefcase,
+  Shield,
+  Mail,
+  Lock,
+  ArrowRight
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const roles = [
@@ -39,31 +46,47 @@ export default function Login() {
 
     try {
       let result;
+
       if (isLogin) {
         result = await login(formData.email, formData.password, activeRole);
       } else {
-        result = await register(formData.name, formData.email, formData.password, formData.phone, activeRole);
+        result = await register(
+          formData.name,
+          formData.email,
+          formData.password,
+          formData.phone,
+          activeRole
+        );
       }
 
       if (result.success) {
-        // Redirect based on role
+        const loggedInUser = result.user;
+
         const roleRoutes = {
           admin: '/admin-dashboard',
           lawyer: '/lawyer-dashboard',
           client: '/client-dashboard',
         };
-        navigate(roleRoutes[activeRole]);
+
+        const finalRole = loggedInUser?.role || activeRole;
+        const finalRoute = roleRoutes[finalRole] || '/';
+
+        console.log('Login/Register success user:', loggedInUser);
+        console.log('Redirecting to:', finalRoute);
+
+        navigate(finalRoute, { replace: true });
       } else {
-        setError(result.message);
+        setError(result.message || `${isLogin ? 'Login' : 'Registration'} failed`);
       }
     } catch (error) {
+      console.error(`${isLogin ? 'Login' : 'Registration'} error:`, error);
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  const activeRoleData = roles.find(role => role.id === activeRole);
+  const activeRoleData = roles.find((role) => role.id === activeRole);
 
   return (
     <div className="pt-24 pb-16 bg-slate-50 min-h-screen">
@@ -78,11 +101,11 @@ export default function Login() {
             <p className="text-slate-600">Sign in to your CaseMate account</p>
           </div>
 
-          {/* Role Selection Tabs */}
           <div className="flex mb-8 bg-slate-100 rounded-lg p-1">
             {roles.map((role) => (
               <button
                 key={role.id}
+                type="button"
                 onClick={() => setActiveRole(role.id)}
                 className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-md transition-all ${
                   activeRole === role.id
@@ -96,7 +119,6 @@ export default function Login() {
             ))}
           </div>
 
-          {/* Role Description */}
           <motion.div
             key={activeRole}
             initial={{ opacity: 0 }}
@@ -106,7 +128,6 @@ export default function Login() {
             <p className="text-slate-600 text-sm">{activeRoleData.description}</p>
           </motion.div>
 
-          {/* Login/Register Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div>
@@ -212,9 +233,9 @@ export default function Login() {
             </motion.button>
           </form>
 
-          {/* Additional Links */}
           <div className="mt-6 text-center space-y-2">
             <button
+              type="button"
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError('');
