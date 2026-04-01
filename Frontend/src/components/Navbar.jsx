@@ -45,17 +45,17 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center space-x-8">
             {menuItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`transition-colors font-medium ${
-                  location.pathname === item.path
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`relative group transition-all font-medium pb-1 ${
+                    location.pathname === item.path
                     ? 'text-slate-900 font-bold'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {item.name}
-              </Link>
+                  }`}
+                >
+                  {item.name}
+                </Link>
             ))}
           </div>
 
@@ -66,7 +66,7 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => navigate('/lawyer-dashboard?view=notifications')}
-                    className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition-colors"
                   >
                     <Bell className="w-5 h-5" />
                     {upcomingHearingsCount > 0 && (
@@ -80,11 +80,10 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors bg-slate-50 px-3 py-1.5 rounded-lg hover:bg-slate-100"
+                    className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors bg-slate-50 px-3 py-1.5 rounded-lg hover:bg-slate-200"
                   >
                     <UserCircle className="w-5 h-5" />
                     <span className="font-medium text-sm">{user.name || 'User'}</span>
-                    <span className="text-xs bg-slate-200 px-2 py-0.5 rounded capitalize">{user.role}</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>
                   <AnimatePresence>
@@ -93,15 +92,16 @@ export default function Navbar() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50"
+                        className="absolute right-0  w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1 px-1 z-50"
                       >
-                        <div className="px-4 py-2 border-b border-slate-100">
-                          <p className="font-semibold text-slate-900">{user.name || 'User'}</p>
-                          <p className="text-xs text-slate-500 capitalize">{user.role}</p>
-                        </div>
+                        <div className="px-4 py-2 border-b border-slate-100 h-0 min-h-0 invisible"></div>
                         <Link
                           to={`/${user.role}-profile`}
-                          className="block px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
+                          className={`block px-4 py-2 transition-all ${
+                            location.pathname === `/${user.role}-profile`
+                              ? 'text-slate-900 bg-slate-50 hover:bg-slate-200'
+                              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
                           onClick={() => {
                             console.log('Navigating to profile:', `/${user.role}-profile`);
                             setProfileDropdownOpen(false);
@@ -112,16 +112,24 @@ export default function Navbar() {
                         {user.role === 'client' && (
                           <Link
                             to="/client-dashboard"
-                            className="block px-4 py-2 text-indigo-600 font-medium bg-indigo-50 hover:bg-indigo-100 transition-colors border-l-4 border-indigo-600"
+                            className={`block px-4 py-2 transition-all ${
+                              location.pathname === '/client-dashboard'
+                              ? 'text-slate-900 bg-slate-50 hover:bg-slate-200'
+                              : 'text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                            }`}
                             onClick={() => setProfileDropdownOpen(false)}
                           >
-                            📊 Client Dashboard
+                            Dashboard
                           </Link>
                         )}
                         {user.role === 'lawyer' && (
                           <Link
                             to="/lawyer-dashboard"
-                            className="block px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
+                          className={`block px-4 py-2 transition-all ${
+                            location.pathname === '/lawyer-dashboard'
+                            ? 'text-slate-900 bg-slate-50 hover:bg-slate-200'
+                            : 'text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                          }`}
                             onClick={() => setProfileDropdownOpen(false)}
                           >
                             Dashboard
@@ -130,7 +138,11 @@ export default function Navbar() {
                         {user.role === 'admin' && (
                           <Link
                             to="/admin-dashboard"
-                            className="block px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
+                          className={`block px-4 py-2 transition-all ${
+                            location.pathname === '/admin-dashboard'
+                            ? 'text-slate-900 bg-slate-50 hover:bg-slate-200'
+                            : 'text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                          }`}
                             onClick={() => setProfileDropdownOpen(false)}
                           >
                             Dashboard
@@ -182,10 +194,10 @@ export default function Navbar() {
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`block transition-colors font-medium py-2 ${
+                  className={`block transition-all font-medium py-2 ${
                     location.pathname === item.path
-                      ? 'text-slate-900 font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'text-slate-900 font-bold border-b-2 border-slate-900'
+                      : 'text-slate-600 hover:text-slate-900 hover:border-b-2 hover:border-slate-900'
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -198,7 +210,6 @@ export default function Navbar() {
                     <UserCircle className="w-6 h-6" />
                     <div>
                       <p className="font-semibold">{user.name || 'User'}</p>
-                      <p className="text-xs text-slate-500 capitalize">{user.role}</p>
                     </div>
                   </div>
                   {user.role === 'client' && (
@@ -207,7 +218,7 @@ export default function Navbar() {
                       className="flex items-center justify-center space-x-2 text-indigo-600 font-medium bg-indigo-50 px-4 py-3 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      📊 Client Dashboard
+                      Dashboard
                     </Link>
                   )}
                   {user.role === 'lawyer' && (
