@@ -50,6 +50,7 @@ function AppRoutes() {
     '/lawyer-documents',
     '/lawyer-calendar',
     '/lawyer-settings',
+    '/ai-chatbot',
   ];
   const showFooter = !noFooterRoutes.some(route => location.pathname.startsWith(route));
 

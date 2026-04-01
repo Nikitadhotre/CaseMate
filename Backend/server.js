@@ -8,6 +8,20 @@ const sendHearingReminders = require('./send-hearing-reminders');
 // Load env vars
 dotenv.config();
 
+// Log API key status (only first few chars for security)
+console.log('=== API Key Status ===');
+if (process.env.GEMINI_API_KEY) {
+  console.log('✓ GEMINI_API_KEY loaded:', process.env.GEMINI_API_KEY.substring(0, 10) + '...');
+} else {
+  console.log('✗ GEMINI_API_KEY NOT found');
+}
+if (process.env.GROQ_API_KEY) {
+  console.log('✓ GROQ_API_KEY loaded:', process.env.GROQ_API_KEY.substring(0, 10) + '...');
+} else {
+  console.log('✗ GROQ_API_KEY NOT found');
+}
+console.log('======================');
+
 // Load all models to ensure they are registered
 require('./models/clientModel');
 require('./models/lawyerModel');
@@ -25,7 +39,7 @@ app.use(express.json());
 
 // Enable CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'], // Allow frontend origins
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'], // Allow frontend origins
   credentials: true
 }));
 
@@ -36,6 +50,7 @@ app.use('/api/lawyer', require('./routes/lawyerRoutes'));
 app.use('/api/client', require('./routes/clientRoutes'));
 app.use('/api/cases', require('./routes/caseRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
 
 // Basic route
 app.get('/', (req, res) => {

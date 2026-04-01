@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+const API_URL = 'http://localhost:5000';
 
 const exampleQueries = [
   'What is Section 420 IPC?',
@@ -8,17 +12,6 @@ const exampleQueries = [
   'How long does a civil case take?',
   'What are my rights during arrest?',
 ];
-
-const mockResponses = {
-  'What is Section 420 IPC?':
-    'Section 420 of the Indian Penal Code (IPC) deals with cheating and dishonestly inducing delivery of property. It is a criminal offense punishable with imprisonment up to seven years and a fine.',
-  'What happens after filing an FIR?':
-    'After filing an FIR, the police will register the complaint and begin investigation. They may call you for statements, collect evidence, and if enough evidence is found, file a charge sheet in court.',
-  'How long does a civil case take?':
-    'Civil cases in India can take anywhere from 1-5 years on average, depending on the complexity of the case, court backlog, and whether appeals are filed. Complex cases may take even longer.',
-  'What are my rights during arrest?':
-    'During arrest, you have the right to know the reason for arrest, right to remain silent, right to legal representation, right to be informed about bail, and right to be examined by a doctor.',
-};
 
 export default function AIChatbot() {
   const [messages, setMessages] = useState([
@@ -40,24 +33,58 @@ export default function AIChatbot() {
   }, [messages]);
 
   const handleSend = () => {
-    if (!inputMessage.trim()) return;
-
-    const userMessage = { type: 'user', text: inputMessage };
-    setMessages((prev) => [...prev, userMessage]);
-    setInputMessage('');
-    setIsTyping(true);
-
-    setTimeout(() => {
-      const response = mockResponses[inputMessage] ||
-        "I understand your question. For specific legal advice, I recommend consulting with a qualified lawyer. You can search for specialized lawyers using our 'Find Lawyers' feature.";
-
-      setMessages((prev) => [...prev, { type: 'bot', text: response }]);
-      setIsTyping(false);
-    }, 1500);
+    if (inputMessage.trim()) {
+      handleSendDirect(inputMessage);
+    }
   };
 
   const handleExampleClick = (query) => {
     setInputMessage(query);
+    // Automatically send the query
+    handleSendDirect(query);
+  };
+
+  const handleSendDirect = async (queryText) => {
+    if (!queryText.trim()) return;
+
+    const userMessage = { type: 'user', text: queryText };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputMessage('');
+    setIsTyping(true);
+
+    try {
+      console.log('Sending request to:', `${API_URL}/api/chat`);
+      console.log('Question:', queryText);
+      
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question: queryText }),
+      });
+
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (data.success) {
+        setMessages((prev) => [...prev, { type: 'bot', text: data.response }]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { type: 'bot', text: data.message || 'Sorry, I could not process your request. Please try again.' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages((prev) => [
+        ...prev,
+        { type: 'bot', text: 'Sorry, I could not connect to the AI service. Please check your connection and try again.' },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
@@ -100,7 +127,7 @@ export default function AIChatbot() {
             </div>
           </div>
 
-          <div className="h-[500px] overflow-y-auto p-6 space-y-4">
+          <div className="h-[300px] overflow-y-auto p-6 space-y-4">
             <AnimatePresence>
               {messages.map((message, index) => (
                 <motion.div
@@ -136,7 +163,25 @@ export default function AIChatbot() {
                           : 'bg-slate-100 text-slate-900'
                       }`}
                     >
-                      <p className="text-sm leading-relaxed">{message.text}</p>
+                      {message.type === 'user' ? (
+                        <p className="text-sm leading-relaxed">{message.text}</p>
+                      ) : (
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            h1: ({children}) => <h1 className="text-lg font-bold text-slate-900 mb-2">{children}</h1>,
+                            h2: ({children}) => <h2 className="text-base font-semibold text-slate-900 mb-2">{children}</h2>,
+                            h3: ({children}) => <h3 className="text-sm font-medium text-slate-900 mb-1">{children}</h3>,
+                            strong: ({children}) => <strong className="font-semibold text-slate-900">{children}</strong>,
+                            p: ({children}) => <p className="text-sm leading-relaxed mb-2">{children}</p>,
+                            ul: ({children}) => <ul className="list-disc ml-6 mb-2">{children}</ul>,
+                            ol: ({children}) => <ol className="list-decimal ml-6 mb-2">{children}</ol>,
+                            li: ({children}) => <li className="text-sm">{children}</li>,
+                          }}
+                        >
+                          {message.text}
+                        </ReactMarkdown>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -199,15 +244,6 @@ export default function AIChatbot() {
               </motion.button>
             </div>
           </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-6 text-center text-sm text-slate-500"
-        >
-          Note: This AI assistant provides general legal information. For specific legal advice, please consult a qualified lawyer.
         </motion.div>
       </div>
     </div>
