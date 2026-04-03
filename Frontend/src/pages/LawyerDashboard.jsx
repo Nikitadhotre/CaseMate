@@ -7,7 +7,7 @@ import axios from 'axios';
 import UpdateHearingModal from '../components/UpdateHearingModal';
 
 export default function LawyerDashboard() {
-  const [showAddCase, setShowAddCase] = useState(false);
+  const [showAddCaseForm, setShowAddCaseForm] = useState(false);
   const [showHearingModal, setShowHearingModal] = useState(false);
   const [selectedCaseForHearing, setSelectedCaseForHearing] = useState(null);
   const [cases, setCases] = useState([]);
@@ -44,12 +44,13 @@ export default function LawyerDashboard() {
       setActiveFilter(filter);
     }
     // Auto-open add case form if navigating from sidebar
-    if (searchParams.get('action') === 'add-case' || view === 'add-case') {
-      setShowAddCase(true);
+    if (searchParams.get('action') === 'add-case') {
+      setActiveView('add-case');
+      setShowAddCaseForm(true);
+    } else if (view === 'add-case') {
+      setShowAddCaseForm(true);
     }
-  }, [searchParams.toString()]);
-
-
+  }, [searchParams]);
 
   const filteredClients = clients.filter(client => {
     const searchLower = clientSearch.toLowerCase();
@@ -96,9 +97,9 @@ export default function LawyerDashboard() {
       
       setCaseStats({
         totalRevenue,
-        monthlyEarnings: totalRevenue * 0.15, // Mock monthly calculation
+        monthlyEarnings: totalRevenue * 0.15,
         successRate,
-        avgCaseDuration: 45 // Mock average days
+        avgCaseDuration: 45
       });
       
       // Set messages
@@ -188,7 +189,7 @@ export default function LawyerDashboard() {
 
       setCases([...cases, response.data.case]);
       setFormData({ caseTitle: '', caseDescription: '', caseType: '', clientIdentifier: '', nextHearingDate: '', fees: '' });
-      setShowAddCase(false);
+      setShowAddCaseForm(false);
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add case');
       console.error('Error adding case:', error);
@@ -219,107 +220,17 @@ export default function LawyerDashboard() {
 
   return (
     <>
-      <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* New Features: Stats Bar */}
-          {activeView === 'dashboard' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <DollarSign className="w-8 h-8 opacity-80" />
-                  <div>
-                    <p className="text-xs opacity-80">Total Revenue</p>
-                    <p className="text-xl font-bold">₹{caseStats.totalRevenue.toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <TrendingUp className="w-8 h-8 opacity-80" />
-                  <div>
-                    <p className="text-xs opacity-80">Success Rate</p>
-                    <p className="text-xl font-bold">{caseStats.successRate}%</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <Briefcase className="w-8 h-8 opacity-80" />
-                  <div>
-                    <p className="text-xs opacity-80">Active Cases</p>
-                    <p className="text-xl font-bold">{cases.filter(c => c.caseStatus !== 'Closed').length}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <Clock3 className="w-8 h-8 opacity-80" />
-                  <div>
-                    <p className="text-xs opacity-80">Avg Duration</p>
-                    <p className="text-xl font-bold">{caseStats.avgCaseDuration} days</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Header with Search & Messages */}
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search cases, clients..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-72"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {/* Messages */}
-              <button
-                onClick={() => setShowMessages(!showMessages)}
-                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <MessageSquare className="w-5 h-5 text-gray-600" />
-                {messages.filter(m => !m.read).length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {messages.filter(m => !m.read).length}
-                  </span>
-                )}
-              </button>
-              
-              {/* Notifications */}
-              <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Bell className="w-5 h-5 text-gray-600" />
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
-              
-              {/* Logout */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
-            </div>
-          </div>
-          
+      <div className="min-h-screen bg-gray-50">
+        {/* Main Content */}
+        <div className="p-6 max-w-7xl mx-auto">
+
           {/* Messages Panel */}
           {showMessages && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+              className="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm p-4 fixed z-40 top-20 right-4 w-80 max-h-96 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -635,128 +546,6 @@ export default function LawyerDashboard() {
               </>
             )}
 
-            {/* Add Case View */}
-            {activeView === 'add-case' && (
-              <AnimatePresence>
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="bg-white rounded-lg p-6 mb-6 border border-gray-200 shadow-sm"
-                >
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Add New Case</h2>
-                  <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Case Title
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.caseTitle}
-                        onChange={(e) => setFormData({ ...formData, caseTitle: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
-                        placeholder="Enter case title"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Case Type
-                      </label>
-                      <select
-                        value={formData.caseType}
-                        onChange={(e) => setFormData({ ...formData, caseType: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
-                        required
-                      >
-                        <option value="">Select Type</option>
-                        <option value="civil">Civil</option>
-                        <option value="criminal">Criminal</option>
-                        <option value="corporate">Corporate</option>
-                        <option value="family">Family</option>
-                        <option value="property">Property</option>
-                        <option value="cyber">Cyber</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Client Email or Phone
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.clientIdentifier}
-                        onChange={(e) => setFormData({ ...formData, clientIdentifier: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
-                        placeholder="Enter client's email or phone number"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Next Hearing Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.nextHearingDate}
-                        onChange={(e) => setFormData({ ...formData, nextHearingDate: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Case Fees (₹)
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.fees}
-                        onChange={(e) => setFormData({ ...formData, fees: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all"
-                        placeholder="Enter case fees"
-                        min="0"
-                        required
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Case Description</label>
-                      <textarea
-                        value={formData.caseDescription}
-                        onChange={(e) => setFormData({ ...formData, caseDescription: e.target.value })}
-                        rows="4"
-                        className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all resize-none"
-                        placeholder="Enter detailed case description"
-                        required
-                      ></textarea>
-                    </div>
-                    <div className="md:col-span-2 flex gap-3 pt-2">
-                      <motion.button
-                        type="submit"
-                        disabled={submitting}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md font-semibold text-sm shadow-sm hover:bg-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {submitting ? 'Adding...' : 'Add Case'}
-                      </motion.button>
-                      <motion.button
-                        type="button"
-                        onClick={() => {
-                          setShowAddCase(false);
-                          window.history.back();
-                        }}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="flex-1 bg-gray-100 border border-gray-300 text-gray-700 py-2.5 px-6 rounded-md font-semibold text-sm hover:bg-gray-200 transition-all duration-300"
-                      >
-                        Cancel
-                      </motion.button>
-                    </div>
-                  </form>
-                </motion.div>
-              </AnimatePresence>
-            )}
-
             {/* Clients View */}
             {activeView === 'clients' && (
               <div className="space-y-5">
@@ -851,7 +640,7 @@ export default function LawyerDashboard() {
 
             {/* Cases View */}
             {activeView === 'cases' && (
-              <>
+              <div>
                 {/* Stats Bar */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
                   <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
@@ -1028,11 +817,11 @@ export default function LawyerDashboard() {
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             )}
+            </div>
           </div>
         </div>
-      </div>
 
       <UpdateHearingModal
         isOpen={showHearingModal}
@@ -1047,4 +836,5 @@ export default function LawyerDashboard() {
     </>
   );
 }
+
 
