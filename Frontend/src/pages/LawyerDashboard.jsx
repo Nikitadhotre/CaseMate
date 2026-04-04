@@ -162,7 +162,7 @@ export default function LawyerDashboard() {
     setLoadingClients(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/lawyer/clients', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/lawyer/clients`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setClients(response.data.clients || []);
@@ -221,7 +221,7 @@ const token = localStorage.getItem('token');
         caseType: formData.caseType.toLowerCase(), // Normalize for mongoose enum
         lawyerId: user.id
       };
-      const response = await axios.post('${import.meta.env.VITE_API_URL}/api/cases/add', submitData, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/cases/add`, submitData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

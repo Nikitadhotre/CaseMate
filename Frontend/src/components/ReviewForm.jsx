@@ -65,7 +65,7 @@ export default function ReviewForm({ lawyerId, lawyerName, onReviewSubmitted }) 
         });
       } else {
         // Create new review
-        await axios.post('${import.meta.env.VITE_API_URL}/api/reviews', reviewData, {
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/reviews`, reviewData, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }

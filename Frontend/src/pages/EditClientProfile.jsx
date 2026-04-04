@@ -26,7 +26,7 @@ export default function EditClientProfile() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('${import.meta.env.VITE_API_URL}/api/client/profile', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/client/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -71,7 +71,7 @@ export default function EditClientProfile() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put('${import.meta.env.VITE_API_URL}/api/client/profile', formData, {
+      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/client/profile`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
