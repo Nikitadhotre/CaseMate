@@ -69,7 +69,7 @@ export default function ViewCaseDetails() {
             <span>Back to Dashboard</span>
           </button>
           <div>
-            <h1 className="text-4xl font-bold text-slate-900">Case Details</h1>
+
             <p className="text-slate-600">Complete information about this case</p>
           </div>
         </div>

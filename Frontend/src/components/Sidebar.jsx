@@ -47,12 +47,7 @@ case 'lawyer':
           id: 'cases',
           label: 'My Cases',
           icon: FolderOpen,
-          children: [
-            { id: 'open', label: 'Open Cases', icon: AlertCircle, path: '/client-dashboard?filter=Open' },
-            { id: 'inprogress', label: 'In Progress', icon: Clock, path: '/client-dashboard?filter=In Progress' },
-            { id: 'completed', label: 'Completed', icon: CheckCircle, path: '/client-dashboard?filter=Closed' },
-            { id: 'all', label: 'All Cases', icon: FolderOpen, path: '/client-dashboard?filter=all' },
-          ],
+
         },
         { id: 'lawyers', label: 'Find Lawyers', icon: Briefcase, path: '/lawyers' },
         { id: 'payments', label: 'Payments', icon: CreditCard, path: '/payment' },
