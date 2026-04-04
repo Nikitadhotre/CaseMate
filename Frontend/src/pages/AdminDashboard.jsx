@@ -45,7 +45,7 @@ export default function AdminDashboard() {
     const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const [dashboardRes, clientsRes, lawyersRes] = await Promise.all([
+        const [dashboardRes, clientsRes, lawyersRes, casesRes] = await Promise.all([
           axios.get('http://localhost:5000/api/admin/dashboard', {
             headers: { Authorization: `Bearer ${token}` }
           }),
@@ -54,6 +54,9 @@ export default function AdminDashboard() {
           }),
           axios.get('http://localhost:5000/api/admin/lawyers', {
             headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get('http://localhost:5000/api/cases/all', {
+            headers: { Authorization: `Bearer ${token}` }
           })
         ]);
 
@@ -61,7 +64,7 @@ export default function AdminDashboard() {
         setDashboardData(dashboard);
         setClients(clientsRes.data.data || []);
         setLawyers(lawyersRes.data.data || []);
-        setCases(dashboard.cases || []);
+        setCases(casesRes.data.cases || []);
         
         // Generate notifications based on dashboard data
         const newNotifications = [];
