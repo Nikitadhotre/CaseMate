@@ -11,15 +11,27 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  // Count for notification badge (simplified - in real app, fetch from API)
-  const [upcomingHearingsCount, setUpcomingHearingsCount] = useState(0);
+// Notification badge count with localStorage persistence
+  const [notificationCount, setNotificationCount] = useState(0);
 
+  // Load from localStorage + globals
   useEffect(() => {
     if (user) {
-      // Simulated - in real app, fetch from API
-      setUpcomingHearingsCount(0);
+      const savedCounts = JSON.parse(localStorage.getItem('caseMateNotifications') || '{}');
+      const hearings = savedCounts.hearings || window.hearingCount || 0;
+      const payments = savedCounts.payments || (window.paymentNotifications ? window.paymentNotifications.length : 0);
+      const total = hearings + payments;
+      setNotificationCount(total);
     }
   }, [user]);
+
+  // Clear notifications function
+  const clearNotifications = () => {
+    localStorage.setItem('caseMateNotifications', JSON.stringify({ hearings: 0, payments: 0 }));
+    window.hearingCount = 0;
+    window.paymentNotifications = [];
+    setNotificationCount(0);
+  };
 
   const publicMenuItems = [
     { name: 'Home', path: '/' },
@@ -65,13 +77,22 @@ export default function Navbar() {
                 {/* Notification Bell */}
                 <div className="relative">
                   <button
-                    onClick={() => navigate('/lawyer-dashboard?view=notifications')}
+                    onClick={() => {
+                      clearNotifications();
+                      if (location.pathname === '/client-dashboard' || user?.role === 'client') {
+                        navigate('/client-dashboard?view=notifications');
+                      } else if (user?.role === 'lawyer') {
+                        navigate('/lawyer-dashboard?view=notifications');
+                      } else {
+                        navigate('/admin-dashboard?view=notifications');
+                      }
+                    }}
                     className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition-colors"
                   >
                     <Bell className="w-5 h-5" />
-                    {upcomingHearingsCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                        {upcomingHearingsCount > 9 ? '9+' : upcomingHearingsCount}
+                    {notificationCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                        {notificationCount > 9 ? '9+' : notificationCount}
                       </span>
                     )}
                   </button>

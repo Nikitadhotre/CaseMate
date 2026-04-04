@@ -227,7 +227,13 @@ export default function AdminDashboard() {
             {/* Notifications */}
             <div className="relative">
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  if (notifications.length > 0) {
+                    // Clear notifications when viewed
+                    setNotifications([]);
+                  }
+                }}
                 className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 <Bell className="w-5 h-5 text-slate-600" />
@@ -239,8 +245,14 @@ export default function AdminDashboard() {
               </button>
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
-                  <div className="p-3 border-b border-slate-200">
+                  <div className="p-3 border-b border-slate-200 flex items-center justify-between">
                     <h3 className="font-semibold text-slate-900">Notifications</h3>
+                    <button
+                      onClick={() => setNotifications([])}
+                      className="text-slate-500 hover:text-slate-700 text-sm"
+                    >
+                      Mark all read
+                    </button>
                   </div>
                   <div className="max-h-64 overflow-y-auto">
                     {notifications.length > 0 ? (

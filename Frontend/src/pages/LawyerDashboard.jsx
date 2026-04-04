@@ -40,7 +40,8 @@ export default function LawyerDashboard() {
   // Update activeView, activeFilter when URL changes
   useEffect(() => {
     const view = searchParams.get('view') || 'dashboard';
-    setActiveView(view);
+    const newView = view;
+    setActiveView(newView);
     const filter = searchParams.get('filter');
     if (filter) {
       setActiveFilter(filter);
@@ -51,6 +52,11 @@ export default function LawyerDashboard() {
       setShowAddCaseForm(true);
     } else if (view === 'add-case') {
       setShowAddCaseForm(true);
+    }
+    
+    // Clear notifications when viewing
+    if (newView === 'notifications') {
+      setNotifications([]);
     }
   }, [searchParams]);
 
@@ -506,23 +512,30 @@ const token = localStorage.getItem('token');
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">Notifications</h2>
                 <div className="space-y-3">
-                  {upcomingHearings.length > 0 ? (
-                    upcomingHearings.map((hearing) => (
-                      <div key={hearing.id} className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  {notifications.length > 0 ? (
+                    notifications.map((notif) => (
+                      <div key={notif.id} className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
                         <Bell className="w-5 h-5 text-blue-600 mt-0.5" />
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">Hearing: {hearing.title}</p>
-                          <p className="text-xs text-gray-600 mt-1">Date: {new Date(hearing.hearingDate).toLocaleDateString()} at {new Date(hearing.hearingDate).toLocaleTimeString()}</p>
-                          <p className="text-xs text-gray-500">Client: {hearing.clientName}</p>
+                          <p className="text-sm font-medium text-gray-900">{notif.message}</p>
+                          <p className="text-xs text-gray-500">{notif.time}</p>
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="text-center py-8">
                       <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500">No notifications</p>
+                      <p className="text-gray-500">No new notifications</p>
                     </div>
                   )}
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <button 
+                    onClick={() => setNotifications([])}
+                    className="w-full bg-blue-50 text-blue-700 py-2 px-4 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                  >
+                    Mark all as read
+                  </button>
                 </div>
               </div>
             )}
@@ -600,63 +613,9 @@ const token = localStorage.getItem('token');
                   </motion.div>
                 </div>
                 
-                {upcomingHearings.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl p-5 mb-5"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                        <Bell className="w-5 h-5" />
-                      </div>
-                      <h3 className="text-lg font-bold">Upcoming Hearings</h3>
-                    </div>
-                    <div className="space-y-3">
-                      {upcomingHearings.slice(0, 3).map((hearing, index) => (
-                        <motion.div
-                          key={hearing.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.4, delay: index * 0.1 }}
-                          className="bg-white/10 rounded-xl p-4 backdrop-blur-xl border border-white/20 hover:bg-white/20 transition-all duration-300"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Calendar className="w-8 h-8 text-blue-200 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-base text-white mb-1 truncate">{hearing.title}</h4>
-                              <p className="text-blue-100 text-sm mb-2">Client: <span className="font-semibold">{hearing.clientName}</span></p>
-                              <div className="flex gap-3 text-xs">
-                                <span className="bg-white/20 px-2 py-0.5 rounded-lg">
-                                  {new Date(hearing.hearingDate).toLocaleDateString('en-US', {
-                                    weekday: 'short',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </span>
-                                <span className="bg-white/20 px-2 py-0.5 rounded-lg">
-                                  {new Date(hearing.hearingDate).toLocaleTimeString('en-US', {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                      {upcomingHearings.length > 3 && (
-                        <p className="text-blue-200 text-sm font-semibold text-center pt-3 border-t border-white/20">
-                          +{upcomingHearings.length - 3} more hearings
-                        </p>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-
                 {/* Mini Calendar */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 mb-5">
+
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-base font-bold text-gray-900">Calendar</h3>
                     <div className="flex items-center gap-2">

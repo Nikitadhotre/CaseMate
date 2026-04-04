@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -11,7 +11,7 @@ import {
   CreditCard,
   MessageSquare,
   LogOut,
-  Bell,
+
   CheckCircle,
   Clock,
   AlertCircle,
@@ -43,14 +43,29 @@ case 'lawyer':
       ];
     case 'client':
       return [
+
+
         {
           id: 'cases',
           label: 'My Cases',
           icon: FolderOpen,
-
+          path: '/client-dashboard?view=cases',
         },
-        { id: 'lawyers', label: 'Find Lawyers', icon: Briefcase, path: '/lawyers' },
-        { id: 'payments', label: 'Payments', icon: CreditCard, path: '/payment' },
+
+
+        {
+          id: 'lawyers',
+          label: 'Find Lawyers',
+          icon: Briefcase,
+          path: '/lawyers',
+        },
+        {
+          id: 'payments',
+          label: 'Payments',
+          icon: CreditCard,
+          path: '/payment',
+        },
+
         { id: 'chatbot', label: 'AI Assistant', icon: MessageSquare, path: '/ai-chatbot' },
       ];
     case 'admin':
@@ -83,7 +98,14 @@ const Sidebar = ({ isCollapsed: externalCollapsed, onToggle }) => {
     [user?.role]
   );
 
+
+
+
+
+
+
   const [openDropdown, setOpenDropdown] = useState(null);
+
 
   const toggleDropdown = (id) => {
     setOpenDropdown(openDropdown === id ? null : id);
@@ -203,6 +225,7 @@ const Sidebar = ({ isCollapsed: externalCollapsed, onToggle }) => {
               <p className="truncate text-sm font-semibold text-slate-800">{user?.name || 'User'}</p>
               <p className="truncate text-xs text-slate-500">{getRoleDisplay()}</p>
             </div>
+
           </motion.div>
         </div>
 
