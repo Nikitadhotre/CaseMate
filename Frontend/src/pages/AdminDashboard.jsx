@@ -46,16 +46,16 @@ export default function AdminDashboard() {
       try {
         const token = localStorage.getItem('token');
         const [dashboardRes, clientsRes, lawyersRes, casesRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/admin/dashboard', {
+          axios.get(`${import.meta.env.VITE_API_URL}/api/admin/dashboard`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get('http://localhost:5000/api/admin/clients', {
+          axios.get(`${import.meta.env.VITE_API_URL}/api/admin/clients`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get('http://localhost:5000/api/admin/lawyers', {
+          axios.get(`${import.meta.env.VITE_API_URL}/api/admin/lawyers`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get('http://localhost:5000/api/cases/all', {
+          axios.get(`${import.meta.env.VITE_API_URL}/api/cases/all`, {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);

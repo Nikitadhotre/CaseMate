@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const exampleQueries = [
   'What is Section 420 IPC?',
@@ -248,4 +248,4 @@ export default function AIChatbot() {
       </div>
     </div>
   );
-}
+};

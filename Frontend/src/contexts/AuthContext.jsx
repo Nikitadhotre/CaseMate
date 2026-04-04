@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, role) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         email,
         password,
         role,
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password, phone, role) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
         name,
         email,
         password,
@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }) => {
 
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      const response = await axios.get('http://localhost:5000/api/auth/me', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
