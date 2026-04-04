@@ -21,7 +21,7 @@ export default function ReviewForm({ lawyerId, lawyerName, onReviewSubmitted }) 
   const fetchExistingReview = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/reviews/client/${lawyerId}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/reviews/client/${lawyerId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -60,12 +60,12 @@ export default function ReviewForm({ lawyerId, lawyerName, onReviewSubmitted }) 
 
       if (existingReview) {
         // Update existing review
-        await axios.put(`http://localhost:5000/api/reviews/${existingReview._id}`, reviewData, {
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/reviews/${existingReview._id}`, reviewData, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } else {
         // Create new review
-        await axios.post('http://localhost:5000/api/reviews', reviewData, {
+        await axios.post('${import.meta.env.VITE_API_URL}/api/reviews', reviewData, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }

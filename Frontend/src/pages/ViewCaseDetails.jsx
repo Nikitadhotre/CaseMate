@@ -20,7 +20,7 @@ export default function ViewCaseDetails() {
   const fetchCaseDetails = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/cases/${caseId}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/cases/${caseId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCaseData(response.data.case);

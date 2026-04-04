@@ -29,7 +29,7 @@ export default function EditLawyerProfile() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/lawyer/profile', {
+        const response = await fetch('${import.meta.env.VITE_API_URL}/api/lawyer/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -77,7 +77,7 @@ export default function EditLawyerProfile() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put('http://localhost:5000/api/lawyer/profile', formData, {
+      const response = await axios.put('${import.meta.env.VITE_API_URL}/api/lawyer/profile', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

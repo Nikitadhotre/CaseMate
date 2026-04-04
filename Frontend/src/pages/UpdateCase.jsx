@@ -38,7 +38,7 @@ export default function UpdateCase() {
   const fetchCaseDetails = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/cases/${caseId}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/cases/${caseId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -73,7 +73,7 @@ export default function UpdateCase() {
         nextHearingDate: formData.nextHearingDate ? new Date(formData.nextHearingDate) : undefined,
       };
 
-      await axios.put(`http://localhost:5000/api/cases/update/${caseId}`, updateData, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/cases/update/${caseId}`, updateData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

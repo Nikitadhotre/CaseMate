@@ -13,7 +13,7 @@ export default function LawyerClients() {
     const fetchClients = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5000/api/lawyer/clients`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/lawyer/clients`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setClients(response.data.clients || []);

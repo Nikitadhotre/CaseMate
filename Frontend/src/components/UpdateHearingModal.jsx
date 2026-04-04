@@ -18,7 +18,7 @@ export default function UpdateHearingModal({ isOpen, onClose, caseId, currentHea
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:5000/api/cases/update-hearing/${caseId}`,
+        `${import.meta.env.VITE_API_URL}/api/cases/update-hearing/${caseId}`,
         { nextHearingDate: new Date(nextHearingDate) },
         { headers: { Authorization: `Bearer ${token}` } }
       );

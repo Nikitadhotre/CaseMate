@@ -19,7 +19,7 @@ export default function LawyerCases() {
   const fetchCases = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/cases/lawyer/${user.id}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/cases/lawyer/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCases(response.data.cases || []);

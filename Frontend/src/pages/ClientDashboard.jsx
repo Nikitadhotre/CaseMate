@@ -75,7 +75,7 @@ export default function ClientDashboard() {
         console.log('Using local user data:', user.role, localUserId);
 
         // Fetch client profile
-        const profileResponse = await axios.get('http://localhost:5000/api/client/profile', {
+        const profileResponse = await axios.get('${import.meta.env.VITE_API_URL}/api/client/profile', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -90,7 +90,7 @@ export default function ClientDashboard() {
 
         // Fetch cases
         const casesResponse = await axios.get(
-          `http://localhost:5000/api/cases/client/${clientId}`,
+          `${import.meta.env.VITE_API_URL}/api/cases/client/${clientId}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,

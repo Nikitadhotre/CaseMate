@@ -22,7 +22,7 @@ export default function EditAdminProfile() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/admin/profile', {
+        const response = await fetch('${import.meta.env.VITE_API_URL}/api/admin/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -63,7 +63,7 @@ export default function EditAdminProfile() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put('http://localhost:5000/api/admin/profile', formData, {
+      const response = await axios.put('${import.meta.env.VITE_API_URL}/api/admin/profile', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

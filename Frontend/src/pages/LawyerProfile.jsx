@@ -17,7 +17,7 @@ export default function LawyerProfile() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/lawyer/profile', {
+        const response = await axios.get('${import.meta.env.VITE_API_URL}/api/lawyer/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -36,7 +36,7 @@ export default function LawyerProfile() {
     const fetchCases = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/lawyer/cases', {
+        const response = await axios.get('${import.meta.env.VITE_API_URL}/api/lawyer/cases', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

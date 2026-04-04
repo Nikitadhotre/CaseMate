@@ -99,7 +99,7 @@ export default function LawyerDashboard() {
   const fetchCases = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/cases/lawyer/${user.id}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/cases/lawyer/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -162,7 +162,7 @@ export default function LawyerDashboard() {
     setLoadingClients(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/lawyer/clients', {
+      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/lawyer/clients', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setClients(response.data.clients || []);
@@ -190,7 +190,7 @@ export default function LawyerDashboard() {
   const handleMarkAsCompleted = async (caseId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/cases/update/${caseId}`, 
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/cases/update/${caseId}`, 
         { caseStatus: 'Closed' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -221,7 +221,7 @@ const token = localStorage.getItem('token');
         caseType: formData.caseType.toLowerCase(), // Normalize for mongoose enum
         lawyerId: user.id
       };
-      const response = await axios.post('http://localhost:5000/api/cases/add', submitData, {
+      const response = await axios.post('${import.meta.env.VITE_API_URL}/api/cases/add', submitData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
