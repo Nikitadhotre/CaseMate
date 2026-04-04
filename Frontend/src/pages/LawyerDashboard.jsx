@@ -9,6 +9,7 @@ import UpdateHearingModal from '../components/UpdateHearingModal';
 export default function LawyerDashboard() {
   const [showAddCaseForm, setShowAddCaseForm] = useState(false);
   const [showHearingModal, setShowHearingModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('cases');
   const [selectedCaseForHearing, setSelectedCaseForHearing] = useState(null);
   const [cases, setCases] = useState([]);
   const [clients, setClients] = useState([]);
@@ -34,6 +35,7 @@ export default function LawyerDashboard() {
   });
   const [notifications, setNotifications] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [recentActivities, setRecentActivities] = useState([]);
 
   // Update activeView, activeFilter when URL changes
   useEffect(() => {
@@ -51,6 +53,13 @@ export default function LawyerDashboard() {
       setShowAddCaseForm(true);
     }
   }, [searchParams]);
+
+  // Reset form when not in add-case view
+  useEffect(() => {
+    if (activeView !== 'add-case') {
+      setShowAddCaseForm(false);
+    }
+  }, [activeView]);
 
   const filteredClients = clients.filter(client => {
     const searchLower = clientSearch.toLowerCase();
@@ -76,7 +85,7 @@ export default function LawyerDashboard() {
 
   useEffect(() => {
     fetchCases();
-    if (activeView === 'clients') {
+    if (activeView === 'clients' || activeView === 'dashboard') {
       fetchClients();
     }
   }, [activeView]);
@@ -87,6 +96,7 @@ export default function LawyerDashboard() {
       const response = await axios.get(`http://localhost:5000/api/cases/lawyer/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
       const fetchedCases = response.data.cases || [];
       setCases(fetchedCases);
       
@@ -102,16 +112,36 @@ export default function LawyerDashboard() {
         avgCaseDuration: 45
       });
       
-      // Set messages
-      setMessages([
-        { id: 1, from: 'Admin', message: 'New case assigned', time: '1 hour ago', read: false },
-        { id: 2, from: 'Client', message: 'Document uploaded for Case #567', time: '3 hours ago', read: true }
-      ]);
+      // Calculate dynamic recent activity
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       
-      // Generate notifications
+      const closedThisWeek = fetchedCases.filter(c => 
+        c.caseStatus === 'Closed' && new Date(c.updatedAt) > oneWeekAgo
+      ).length;
+      
+      const newThisWeek = fetchedCases.filter(c => 
+        new Date(c.createdAt) > oneWeekAgo
+      ).length;
+      
+      const upcomingHearingsCount = fetchedCases.filter(c => c.nextHearingDate && new Date(c.nextHearingDate) > new Date()).length;
+      
+      const recentActivities = [
+        { icon: CheckSquare, text: `${closedThisWeek} cases completed`, color: 'text-green-500' },
+        { icon: FileText, text: `${newThisWeek} new cases`, color: 'text-blue-500' },
+        { icon: Calendar, text: `${upcomingHearingsCount} hearings scheduled`, color: 'text-amber-500' }
+      ];
+      
+      setRecentActivities(recentActivities);
+      
+      // Set notifications based on data
       setNotifications([
-        { id: 1, type: 'hearing', message: `${upcomingHearings.length} hearings this week`, time: 'just now' },
-        { id: 2, type: 'case', message: '2 new cases added', time: 'today' }
+        ...(upcomingHearingsCount > 0 ? [{
+          id: 1, type: 'hearing', message: `${upcomingHearingsCount} hearings this week`, time: 'just now'
+        }] : []),
+        ...(newThisWeek > 0 ? [{
+          id: 2, type: 'case', message: `${newThisWeek} new cases added`, time: 'today'
+        }] : [])
       ]);
       
     } catch (error) {
@@ -179,11 +209,13 @@ export default function LawyerDashboard() {
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/cases/add', {
+const token = localStorage.getItem('token');
+      const submitData = {
         ...formData,
+        caseType: formData.caseType.toLowerCase(), // Normalize for mongoose enum
         lawyerId: user.id
-      }, {
+      };
+      const response = await axios.post('http://localhost:5000/api/cases/add', submitData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -255,6 +287,150 @@ export default function LawyerDashboard() {
                 )}
               </div>
             </motion.div>
+          )}
+
+          {/* Add Case Form */}
+          {activeView === 'add-case' && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-8"
+            >
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Add New Case</h1>
+                    <p className="text-gray-600 mt-1">Fill out the details to create a new case for your client</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Case Title *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.caseTitle}
+                        onChange={(e) => setFormData({...formData, caseTitle: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        placeholder="Enter case title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Case Type *</label>
+                      <select
+                        required
+                        value={formData.caseType}
+                        onChange={(e) => setFormData({...formData, caseType: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                      >
+                        <option value="">Select case type</option>
+                        <option value="Criminal">Criminal</option>
+                        <option value="Civil">Civil</option>
+                        <option value="Family">Family</option>
+                        <option value="Corporate">Corporate</option>
+                        <option value="Property">Property</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Client Identifier *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.clientIdentifier}
+                      onChange={(e) => setFormData({...formData, clientIdentifier: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                      placeholder="Client name, ID, email or phone"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Next Hearing Date</label>
+                      <input
+                        type="date"
+                        value={formData.nextHearingDate}
+                        onChange={(e) => setFormData({...formData, nextHearingDate: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Fees (₹)</label>
+                      <input
+                        type="number"
+                        value={formData.fees}
+                        onChange={(e) => setFormData({...formData, fees: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        placeholder="0"
+                        min="0"
+                        
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Case Description</label>
+                    <textarea
+                      rows={4}
+                      value={formData.caseDescription}
+                      onChange={(e) => setFormData({...formData, caseDescription: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-vertical"
+                      placeholder="Describe the case details..."
+                    />
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
+                    >
+                      {submitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          Creating Case...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-5 h-5" />
+                          Create Case
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          )}
+
+
+          
+
+          {/* Header for dashboard/cases/clients */}
+          {(activeView === 'dashboard' || activeView === 'cases' || activeView === 'clients') && (
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {activeView === 'dashboard' ? 'Dashboard' : 
+                 activeView === 'cases' ? 'My Cases' : 'Clients'}
+              </h1>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/lawyer-dashboard?view=add-case')}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                New Case
+              </motion.button>
+            </div>
           )}
 
           {/* Full-width Content */}
@@ -392,18 +568,12 @@ export default function LawyerDashboard() {
                       <ActivityIcon className="w-5 h-5 text-gray-400" />
                     </div>
                     <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <CheckSquare className="w-4 h-4 text-green-500" />
-                        <span className="text-gray-600">2 cases completed</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-blue-500" />
-                        <span className="text-gray-600">5 new documents</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-amber-500" />
-                        <span className="text-gray-600">{upcomingHearings.length} hearings scheduled</span>
-                      </div>
+                      {recentActivities.map((activity, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <activity.icon className={`w-4 h-4 ${activity.color}`} />
+                          <span className="text-gray-600">{activity.text}</span>
+                        </div>
+                      ))}
                     </div>
                   </motion.div>
                   
@@ -836,5 +1006,3 @@ export default function LawyerDashboard() {
     </>
   );
 }
-
-

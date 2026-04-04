@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
+  Activity,
   FolderOpen,
   Users,
   Calendar,
@@ -22,14 +23,13 @@ import { useAuth } from '../contexts/AuthContext';
 
 const getNavItems = (role, stats = {}) => {
   switch (role) {
-    case 'lawyer':
+case 'lawyer':
       return [
         {
-          id: 'add-case',
-          label: 'Add New Case',
-          icon: Plus,
-          path: '/lawyer-dashboard?view=add-case',
-          isButton: true,
+          id: 'overview',
+          label: 'Overview',
+          icon: Activity,
+          path: '/lawyer-dashboard?view=dashboard',
         },
         {
           id: 'cases',
@@ -38,7 +38,7 @@ const getNavItems = (role, stats = {}) => {
           path: '/lawyer-dashboard?view=cases',
         },
         { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/lawyer-dashboard?view=calendar' },
-        { id: 'notifications', label: 'Notifications', icon: Bell, path: '/lawyer-dashboard?view=notifications' },
+
         { id: 'clients', label: 'Clients', icon: Users, path: '/lawyer-dashboard?view=clients' },
       ];
     case 'client':
@@ -62,7 +62,7 @@ const getNavItems = (role, stats = {}) => {
       return [
         { id: 'all-lawyers', label: 'Manage Lawyers', icon: Users, path: '/admin-dashboard?tab=lawyers' },
         { id: 'all-clients', label: 'Manage Clients', icon: Users, path: '/admin-dashboard?tab=clients' },
-        { id: 'notifications', label: 'Notifications', icon: Bell, path: '/admin-dashboard' },
+
       ];
     default:
       return [];

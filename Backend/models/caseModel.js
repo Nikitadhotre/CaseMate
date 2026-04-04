@@ -40,7 +40,7 @@ const caseSchema = new mongoose.Schema({
   caseType: {
     type: String,
     required: [true, 'Case type is required'],
-    enum: ['civil', 'criminal', 'corporate', 'family', 'property', 'cyber', 'other'],
+    enum: ['criminal', 'civil', 'family', 'corporate', 'property', 'cyber', 'other'],
     trim: true,
   },
   caseStatus: {
